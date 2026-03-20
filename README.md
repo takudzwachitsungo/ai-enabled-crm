@@ -78,7 +78,8 @@ Detailed rules: [docs/architecture/module-packaging-standard.md](docs/architectu
 ## Current Scope
 - Flat package structure under `com.dala.crm`.
 - Initial lead flow implemented as reference (`LeadController`, `LeadService`, `LeadServiceImpl`).
-- Additional domain placeholders exist in the same package convention.
+- Contact, account, and opportunity CRUD foundations now follow the same package convention.
+- Additional domain placeholders still exist for later Phase 1 modules.
 
 ## Documentation Index
 - System architecture: [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
@@ -118,6 +119,12 @@ Run:
 mvn spring-boot:run
 ```
 
+Local users:
+```text
+local-dev / local-dev-pass   -> leads, contacts, accounts, opportunities read/write + identity read
+local-view / local-view-pass -> leads, contacts, accounts, opportunities read + identity read
+```
+
 Smoke test:
 ```bash
 ./scripts/smoke-test.sh
@@ -128,6 +135,13 @@ Health endpoint:
 curl http://localhost:8080/api/health
 ```
 
+Identity endpoint:
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/identity/me
+```
+
 Lead API examples (tenant header required):
 ```bash
 curl -X POST http://localhost:8080/api/v1/leads \
@@ -135,6 +149,33 @@ curl -X POST http://localhost:8080/api/v1/leads \
   -H \"X-Tenant-Id: tenant-demo\" \
   -u local-dev:local-dev-pass \
   -d '{\"fullName\":\"Jane Doe\",\"email\":\"jane@example.com\"}'
+```
+
+Contact API example:
+```bash
+curl -X POST http://localhost:8080/api/v1/contacts \
+  -H \"Content-Type: application/json\" \
+  -H \"X-Tenant-Id: tenant-demo\" \
+  -u local-dev:local-dev-pass \
+  -d '{\"fullName\":\"Jane Contact\",\"email\":\"contact@example.com\",\"companyName\":\"Acme\"}'
+```
+
+Account API example:
+```bash
+curl -X POST http://localhost:8080/api/v1/accounts \
+  -H \"Content-Type: application/json\" \
+  -H \"X-Tenant-Id: tenant-demo\" \
+  -u local-dev:local-dev-pass \
+  -d '{\"name\":\"Acme Corp\",\"industry\":\"Manufacturing\",\"website\":\"https://acme.example.com\"}'
+```
+
+Opportunity API example:
+```bash
+curl -X POST http://localhost:8080/api/v1/opportunities \
+  -H \"Content-Type: application/json\" \
+  -H \"X-Tenant-Id: tenant-demo\" \
+  -u local-dev:local-dev-pass \
+  -d '{\"name\":\"Acme Renewal\",\"accountName\":\"Acme Corp\",\"amount\":12500.00,\"stage\":\"PROPOSAL\"}'
 ```
 
 Stop Docker services:
