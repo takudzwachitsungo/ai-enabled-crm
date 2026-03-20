@@ -9,6 +9,7 @@ import com.dala.crm.repo.OpportunityRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.OpportunityService;
+import com.dala.crm.service.WorkflowAutomationService;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -23,10 +24,16 @@ public class OpportunityServiceImpl implements OpportunityService {
 
     private final OpportunityRepository opportunityRepository;
     private final AuditLogService auditLogService;
+    private final WorkflowAutomationService workflowAutomationService;
 
-    public OpportunityServiceImpl(OpportunityRepository opportunityRepository, AuditLogService auditLogService) {
+    public OpportunityServiceImpl(
+            OpportunityRepository opportunityRepository,
+            AuditLogService auditLogService,
+            WorkflowAutomationService workflowAutomationService
+    ) {
         this.opportunityRepository = opportunityRepository;
         this.auditLogService = auditLogService;
+        this.workflowAutomationService = workflowAutomationService;
     }
 
     @Override
@@ -40,6 +47,7 @@ public class OpportunityServiceImpl implements OpportunityService {
         opportunity.setCreatedAt(Instant.now());
         Opportunity savedOpportunity = opportunityRepository.save(opportunity);
         auditLogService.record("CREATE", "OPPORTUNITY", savedOpportunity.getId(), "Created opportunity " + savedOpportunity.getName());
+        workflowAutomationService.execute("OPPORTUNITY_CREATED", "OPPORTUNITY", savedOpportunity.getId(), savedOpportunity.getName());
         return toResponse(savedOpportunity);
     }
 

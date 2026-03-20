@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OpportunityRepository extends JpaRepository<Opportunity, Long> {
 
     List<Opportunity> findByTenantId(String tenantId);
+
+    long countByTenantId(String tenantId);
 }

@@ -47,6 +47,15 @@ public class SecurityConfig {
                         CrmAuthorities.OPPORTUNITIES_WRITE,
                         CrmAuthorities.ACTIVITIES_READ,
                         CrmAuthorities.ACTIVITIES_WRITE,
+                        CrmAuthorities.WORKFLOWS_READ,
+                        CrmAuthorities.WORKFLOWS_WRITE,
+                        CrmAuthorities.DASHBOARD_READ,
+                        CrmAuthorities.INTEGRATIONS_READ,
+                        CrmAuthorities.INTEGRATIONS_WRITE,
+                        CrmAuthorities.COMMUNICATIONS_READ,
+                        CrmAuthorities.COMMUNICATIONS_WRITE,
+                        CrmAuthorities.AI_INTERACTIONS_READ,
+                        CrmAuthorities.AI_INTERACTIONS_WRITE,
                         CrmAuthorities.AUDIT_READ,
                         CrmAuthorities.IDENTITY_READ
                 )
@@ -60,6 +69,11 @@ public class SecurityConfig {
                         CrmAuthorities.ACCOUNTS_READ,
                         CrmAuthorities.OPPORTUNITIES_READ,
                         CrmAuthorities.ACTIVITIES_READ,
+                        CrmAuthorities.WORKFLOWS_READ,
+                        CrmAuthorities.DASHBOARD_READ,
+                        CrmAuthorities.INTEGRATIONS_READ,
+                        CrmAuthorities.COMMUNICATIONS_READ,
+                        CrmAuthorities.AI_INTERACTIONS_READ,
                         CrmAuthorities.IDENTITY_READ
                 )
                 .build();

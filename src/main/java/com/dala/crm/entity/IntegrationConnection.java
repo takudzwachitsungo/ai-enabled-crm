@@ -6,9 +6,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 
 /**
- * MVP placeholder entity for the integration module.
+ * Tenant-scoped integration connection for communication channels.
  */
 @Entity
 @Table(name = "integration_integrationconnection")
@@ -23,6 +24,18 @@ public class IntegrationConnection {
 
     @Column(nullable = false, length = 160)
     private String name;
+
+    @Column(nullable = false, length = 40)
+    private String channelType;
+
+    @Column(nullable = false, length = 80)
+    private String provider;
+
+    @Column(nullable = false, length = 40)
+    private String status;
+
+    @Column(nullable = false)
+    private Instant createdAt;
 
     public Long getId() {
         return id;
@@ -46,5 +59,37 @@ public class IntegrationConnection {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getChannelType() {
+        return channelType;
+    }
+
+    public void setChannelType(String channelType) {
+        this.channelType = channelType;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 }

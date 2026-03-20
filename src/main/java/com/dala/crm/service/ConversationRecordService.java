@@ -1,5 +1,6 @@
 package com.dala.crm.service;
 
+import com.dala.crm.dto.ConversationRecordCreateRequest;
 import com.dala.crm.dto.ConversationRecordDto;
 import java.util.List;
 
@@ -7,6 +8,11 @@ import java.util.List;
  * Public service contract for communication module use cases.
  */
 public interface ConversationRecordService {
+
+    /**
+     * Creates a communication record in the current tenant.
+     */
+    ConversationRecordDto create(ConversationRecordCreateRequest request);
 
     /**
      * Returns the current tenant scope list for this module.
