@@ -7,6 +7,7 @@ import com.dala.crm.exception.ActivityNotFoundException;
 import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.repo.ActivityRepository;
 import com.dala.crm.security.TenantContext;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.ActivityService;
 import java.time.Instant;
 import java.util.List;
@@ -21,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ActivityServiceImpl implements ActivityService {
 
     private final ActivityRepository activityRepository;
+    private final AuditLogService auditLogService;
 
-    public ActivityServiceImpl(ActivityRepository activityRepository) {
+    public ActivityServiceImpl(ActivityRepository activityRepository, AuditLogService auditLogService) {
         this.activityRepository = activityRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -36,7 +39,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setRelatedEntityId(request.relatedEntityId());
         activity.setDetails(trimToNull(request.details()));
         activity.setCreatedAt(Instant.now());
-        return toResponse(activityRepository.save(activity));
+        Activity savedActivity = activityRepository.save(activity);
+        auditLogService.record("CREATE", "ACTIVITY", savedActivity.getId(), "Created activity " + savedActivity.getSubject());
+        return toResponse(savedActivity);
     }
 
     @Override

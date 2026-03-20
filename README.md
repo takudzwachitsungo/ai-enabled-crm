@@ -226,6 +226,10 @@ curl -u local-view:local-view-pass \
 
 - `GET /api/v1/timeline`
 
+### Audit Logs
+
+- `GET /api/v1/audit-logs`
+
 ### AI Service
 
 - `GET /health`
@@ -292,6 +296,14 @@ curl -u local-view:local-view-pass \
   http://localhost:8080/api/v1/timeline
 ```
 
+Read audit logs:
+
+```bash
+curl -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/audit-logs
+```
+
 ## Testing
 
 ### Automated Tests
@@ -309,6 +321,7 @@ The repository includes web-layer tests covering:
 - tenant header enforcement
 - RBAC for viewer vs writer access
 - timeline read access
+- audit log access control
 
 ### CI
 
@@ -334,6 +347,7 @@ Completed so far:
 - Local RBAC and tenant enforcement foundation
 - Core CRM CRUD for leads, contacts, accounts, and opportunities
 - Activity management and timeline feed
+- Audit log read model with create-event recording in current flows
 - Python AI service boundary
 
 Planned next:

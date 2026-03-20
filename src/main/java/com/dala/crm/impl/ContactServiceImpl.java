@@ -7,6 +7,7 @@ import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.exception.ContactNotFoundException;
 import com.dala.crm.repo.ContactRepository;
 import com.dala.crm.security.TenantContext;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.ContactService;
 import java.time.Instant;
 import java.util.List;
@@ -21,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ContactServiceImpl implements ContactService {
 
     private final ContactRepository contactRepository;
+    private final AuditLogService auditLogService;
 
-    public ContactServiceImpl(ContactRepository contactRepository) {
+    public ContactServiceImpl(ContactRepository contactRepository, AuditLogService auditLogService) {
         this.contactRepository = contactRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -34,7 +37,9 @@ public class ContactServiceImpl implements ContactService {
         contact.setEmail(request.email().trim().toLowerCase());
         contact.setCompanyName(trimToNull(request.companyName()));
         contact.setCreatedAt(Instant.now());
-        return toResponse(contactRepository.save(contact));
+        Contact savedContact = contactRepository.save(contact);
+        auditLogService.record("CREATE", "CONTACT", savedContact.getId(), "Created contact " + savedContact.getFullName());
+        return toResponse(savedContact);
     }
 
     @Override

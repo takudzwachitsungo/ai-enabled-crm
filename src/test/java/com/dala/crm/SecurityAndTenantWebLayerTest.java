@@ -16,9 +16,11 @@ import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.AccountController;
 import com.dala.crm.controller.OpportunityController;
 import com.dala.crm.controller.ActivityController;
+import com.dala.crm.controller.AuditLogController;
 import com.dala.crm.controller.TimelineController;
 import com.dala.crm.dto.AccountResponse;
 import com.dala.crm.dto.ActivityResponse;
+import com.dala.crm.dto.AuditLogResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
@@ -27,6 +29,7 @@ import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
 import com.dala.crm.service.AccountService;
 import com.dala.crm.service.ActivityService;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.ContactService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
@@ -49,6 +52,7 @@ import org.springframework.test.web.servlet.MockMvc;
         AccountController.class,
         OpportunityController.class,
         ActivityController.class,
+        AuditLogController.class,
         TimelineController.class
 })
 @Import({SecurityConfig.class, TenantFilter.class, GlobalExceptionHandler.class})
@@ -71,6 +75,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private ActivityService activityService;
+
+    @MockBean
+    private AuditLogService auditLogService;
 
     @Test
     void healthEndpointIsPublic() throws Exception {
@@ -238,6 +245,36 @@ class SecurityAndTenantWebLayerTest {
                         .content("""
                                 {"type":"TASK","subject":"Follow up on quote","relatedEntityType":"OPPORTUNITY","relatedEntityId":31,"details":"Call customer on Friday."}
                                 """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanReadAuditLogs() throws Exception {
+        when(auditLogService.getAuditLogs()).thenReturn(List.of(
+                new AuditLogResponse(
+                        51L,
+                        "local-dev",
+                        "CREATE",
+                        "LEAD",
+                        1L,
+                        "Created lead Jane Doe",
+                        Instant.parse("2026-03-20T08:30:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/audit-logs")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].entityType").value("LEAD"))
+                .andExpect(jsonPath("$[0].actor").value("local-dev"));
+    }
+
+    @Test
+    void viewerCannotReadAuditLogs() throws Exception {
+        mockMvc.perform(get("/api/v1/audit-logs")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isForbidden());
     }
 }

@@ -47,6 +47,7 @@ public class SecurityConfig {
                         CrmAuthorities.OPPORTUNITIES_WRITE,
                         CrmAuthorities.ACTIVITIES_READ,
                         CrmAuthorities.ACTIVITIES_WRITE,
+                        CrmAuthorities.AUDIT_READ,
                         CrmAuthorities.IDENTITY_READ
                 )
                 .build();

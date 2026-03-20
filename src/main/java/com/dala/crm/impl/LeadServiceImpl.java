@@ -7,6 +7,7 @@ import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.entity.Lead;
 import com.dala.crm.exception.LeadNotFoundException;
 import com.dala.crm.repo.LeadRepository;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.LeadService;
 import java.time.Instant;
 import java.util.List;
@@ -22,9 +23,11 @@ public class LeadServiceImpl implements LeadService {
 
     private static final String NEW_STATUS = "NEW";
     private final LeadRepository leadRepository;
+    private final AuditLogService auditLogService;
 
-    public LeadServiceImpl(LeadRepository leadRepository) {
+    public LeadServiceImpl(LeadRepository leadRepository, AuditLogService auditLogService) {
         this.leadRepository = leadRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -38,7 +41,9 @@ public class LeadServiceImpl implements LeadService {
         lead.setStatus(NEW_STATUS);
         lead.setCreatedAt(Instant.now());
 
-        return toResponse(leadRepository.save(lead));
+        Lead savedLead = leadRepository.save(lead);
+        auditLogService.record("CREATE", "LEAD", savedLead.getId(), "Created lead " + savedLead.getFullName());
+        return toResponse(savedLead);
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.repo.AccountRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AccountService;
+import com.dala.crm.service.AuditLogService;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
+    private final AuditLogService auditLogService;
 
-    public AccountServiceImpl(AccountRepository accountRepository) {
+    public AccountServiceImpl(AccountRepository accountRepository, AuditLogService auditLogService) {
         this.accountRepository = accountRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -34,7 +37,9 @@ public class AccountServiceImpl implements AccountService {
         account.setIndustry(trimToNull(request.industry()));
         account.setWebsite(trimToNull(request.website()));
         account.setCreatedAt(Instant.now());
-        return toResponse(accountRepository.save(account));
+        Account savedAccount = accountRepository.save(account);
+        auditLogService.record("CREATE", "ACCOUNT", savedAccount.getId(), "Created account " + savedAccount.getName());
+        return toResponse(savedAccount);
     }
 
     @Override
