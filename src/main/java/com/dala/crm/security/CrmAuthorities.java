@@ -13,6 +13,8 @@ public final class CrmAuthorities {
     public static final String ACCOUNTS_WRITE = "crm:accounts:write";
     public static final String OPPORTUNITIES_READ = "crm:opportunities:read";
     public static final String OPPORTUNITIES_WRITE = "crm:opportunities:write";
+    public static final String ACTIVITIES_READ = "crm:activities:read";
+    public static final String ACTIVITIES_WRITE = "crm:activities:write";
     public static final String IDENTITY_READ = "crm:identity:read";
 
     private CrmAuthorities() {

@@ -45,6 +45,8 @@ public class SecurityConfig {
                         CrmAuthorities.ACCOUNTS_WRITE,
                         CrmAuthorities.OPPORTUNITIES_READ,
                         CrmAuthorities.OPPORTUNITIES_WRITE,
+                        CrmAuthorities.ACTIVITIES_READ,
+                        CrmAuthorities.ACTIVITIES_WRITE,
                         CrmAuthorities.IDENTITY_READ
                 )
                 .build();
@@ -56,6 +58,7 @@ public class SecurityConfig {
                         CrmAuthorities.CONTACTS_READ,
                         CrmAuthorities.ACCOUNTS_READ,
                         CrmAuthorities.OPPORTUNITIES_READ,
+                        CrmAuthorities.ACTIVITIES_READ,
                         CrmAuthorities.IDENTITY_READ
                 )
                 .build();

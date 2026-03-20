@@ -15,7 +15,10 @@ import com.dala.crm.controller.LeadController;
 import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.AccountController;
 import com.dala.crm.controller.OpportunityController;
+import com.dala.crm.controller.ActivityController;
+import com.dala.crm.controller.TimelineController;
 import com.dala.crm.dto.AccountResponse;
+import com.dala.crm.dto.ActivityResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
@@ -23,6 +26,7 @@ import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
 import com.dala.crm.service.AccountService;
+import com.dala.crm.service.ActivityService;
 import com.dala.crm.service.ContactService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
@@ -43,7 +47,9 @@ import org.springframework.test.web.servlet.MockMvc;
         LeadController.class,
         ContactController.class,
         AccountController.class,
-        OpportunityController.class
+        OpportunityController.class,
+        ActivityController.class,
+        TimelineController.class
 })
 @Import({SecurityConfig.class, TenantFilter.class, GlobalExceptionHandler.class})
 class SecurityAndTenantWebLayerTest {
@@ -62,6 +68,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private OpportunityService opportunityService;
+
+    @MockBean
+    private ActivityService activityService;
 
     @Test
     void healthEndpointIsPublic() throws Exception {
@@ -110,7 +119,8 @@ class SecurityAndTenantWebLayerTest {
                         "crm:leads:read",
                         "crm:contacts:read",
                         "crm:accounts:read",
-                        "crm:opportunities:read"
+                        "crm:opportunities:read",
+                        "crm:activities:read"
                 )));
     }
 
@@ -193,6 +203,40 @@ class SecurityAndTenantWebLayerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Acme Renewal","accountName":"Acme Corp","amount":12500.00,"stage":"PROPOSAL"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadTimeline() throws Exception {
+        when(activityService.getActivities()).thenReturn(List.of(
+                new ActivityResponse(
+                        41L,
+                        "NOTE",
+                        "Shared proposal feedback",
+                        "OPPORTUNITY",
+                        31L,
+                        "Customer requested legal review before signing.",
+                        Instant.parse("2026-03-20T08:25:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/timeline")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("NOTE"))
+                .andExpect(jsonPath("$[0].relatedEntityType").value("OPPORTUNITY"));
+    }
+
+    @Test
+    void viewerCannotCreateActivity() throws Exception {
+        mockMvc.perform(post("/api/v1/activities")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"type":"TASK","subject":"Follow up on quote","relatedEntityType":"OPPORTUNITY","relatedEntityId":31,"details":"Call customer on Friday."}
                                 """.trim()))
                 .andExpect(status().isForbidden());
     }
