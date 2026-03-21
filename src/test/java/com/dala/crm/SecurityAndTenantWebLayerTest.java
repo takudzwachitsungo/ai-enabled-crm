@@ -9,27 +9,45 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dala.crm.controller.AccountController;
+import com.dala.crm.controller.ActivityController;
+import com.dala.crm.controller.AiInteractionController;
+import com.dala.crm.controller.AuditLogController;
+import com.dala.crm.controller.ContactController;
+import com.dala.crm.controller.ConversationRecordController;
+import com.dala.crm.controller.DashboardController;
 import com.dala.crm.controller.HealthController;
 import com.dala.crm.controller.IdentityController;
+import com.dala.crm.controller.IntegrationConnectionController;
 import com.dala.crm.controller.LeadController;
-import com.dala.crm.controller.ContactController;
-import com.dala.crm.controller.AccountController;
 import com.dala.crm.controller.OpportunityController;
-import com.dala.crm.controller.ActivityController;
 import com.dala.crm.controller.TimelineController;
+import com.dala.crm.controller.WorkflowDefinitionController;
 import com.dala.crm.dto.AccountResponse;
 import com.dala.crm.dto.ActivityResponse;
+import com.dala.crm.dto.AiInteractionDto;
+import com.dala.crm.dto.AuditLogResponse;
 import com.dala.crm.dto.ContactResponse;
+import com.dala.crm.dto.ConversationRecordDto;
+import com.dala.crm.dto.DashboardSummaryResponse;
+import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
+import com.dala.crm.dto.WorkflowDefinitionDto;
 import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
 import com.dala.crm.service.AccountService;
 import com.dala.crm.service.ActivityService;
+import com.dala.crm.service.AiInteractionService;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.ContactService;
+import com.dala.crm.service.ConversationRecordService;
+import com.dala.crm.service.DashboardService;
+import com.dala.crm.service.IntegrationConnectionService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
+import com.dala.crm.service.WorkflowDefinitionService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -49,7 +67,13 @@ import org.springframework.test.web.servlet.MockMvc;
         AccountController.class,
         OpportunityController.class,
         ActivityController.class,
-        TimelineController.class
+        AuditLogController.class,
+        TimelineController.class,
+        WorkflowDefinitionController.class,
+        DashboardController.class,
+        IntegrationConnectionController.class,
+        ConversationRecordController.class,
+        AiInteractionController.class
 })
 @Import({SecurityConfig.class, TenantFilter.class, GlobalExceptionHandler.class})
 class SecurityAndTenantWebLayerTest {
@@ -71,6 +95,24 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private ActivityService activityService;
+
+    @MockBean
+    private AuditLogService auditLogService;
+
+    @MockBean
+    private WorkflowDefinitionService workflowDefinitionService;
+
+    @MockBean
+    private DashboardService dashboardService;
+
+    @MockBean
+    private IntegrationConnectionService integrationConnectionService;
+
+    @MockBean
+    private ConversationRecordService conversationRecordService;
+
+    @MockBean
+    private AiInteractionService aiInteractionService;
 
     @Test
     void healthEndpointIsPublic() throws Exception {
@@ -120,7 +162,8 @@ class SecurityAndTenantWebLayerTest {
                         "crm:contacts:read",
                         "crm:accounts:read",
                         "crm:opportunities:read",
-                        "crm:activities:read"
+                        "crm:activities:read",
+                        "crm:dashboard:read"
                 )));
     }
 
@@ -212,11 +255,11 @@ class SecurityAndTenantWebLayerTest {
         when(activityService.getActivities()).thenReturn(List.of(
                 new ActivityResponse(
                         41L,
-                        "NOTE",
-                        "Shared proposal feedback",
+                        "TASK",
+                        "Follow up on quote",
                         "OPPORTUNITY",
                         31L,
-                        "Customer requested legal review before signing.",
+                        "Call customer on Friday.",
                         Instant.parse("2026-03-20T08:25:00Z")
                 )
         ));
@@ -225,8 +268,7 @@ class SecurityAndTenantWebLayerTest {
                         .with(httpBasic("local-view", "local-view-pass"))
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].type").value("NOTE"))
-                .andExpect(jsonPath("$[0].relatedEntityType").value("OPPORTUNITY"));
+                .andExpect(jsonPath("$[0].subject").value("Follow up on quote"));
     }
 
     @Test
@@ -236,8 +278,179 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"type":"TASK","subject":"Follow up on quote","relatedEntityType":"OPPORTUNITY","relatedEntityId":31,"details":"Call customer on Friday."}
+                                {"type":"TASK","subject":"Follow up","relatedEntityType":"LEAD","relatedEntityId":1}
                                 """.trim()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanReadAuditLogs() throws Exception {
+        when(auditLogService.getAuditLogs()).thenReturn(List.of(
+                new AuditLogResponse(
+                        51L,
+                        "local-dev",
+                        "CREATE",
+                        "LEAD",
+                        1L,
+                        "Created lead Jane Doe",
+                        Instant.parse("2026-03-20T08:30:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/audit-logs")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].entityType").value("LEAD"));
+    }
+
+    @Test
+    void viewerCannotReadAuditLogs() throws Exception {
+        mockMvc.perform(get("/api/v1/audit-logs")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanReadWorkflows() throws Exception {
+        when(workflowDefinitionService.list()).thenReturn(List.of(
+                new WorkflowDefinitionDto(
+                        61L,
+                        "Lead follow-up",
+                        "LEAD_CREATED",
+                        null,
+                        "CREATE_ACTIVITY",
+                        "Call new lead",
+                        "Reach out within one business day.",
+                        true,
+                        Instant.parse("2026-03-20T08:35:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/workflows")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].triggerType").value("LEAD_CREATED"));
+    }
+
+    @Test
+    void viewerCanReadDashboardSummary() throws Exception {
+        when(dashboardService.getSummary()).thenReturn(new DashboardSummaryResponse(4, 3, 2, 1, 5, 1, 2, 6, 2));
+
+        mockMvc.perform(get("/api/v1/dashboard/summary")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.leadCount").value(4))
+                .andExpect(jsonPath("$.communicationCount").value(6));
+    }
+
+    @Test
+    void adminCanReadIntegrations() throws Exception {
+        when(integrationConnectionService.list()).thenReturn(List.of(
+                new IntegrationConnectionDto(
+                        71L,
+                        "WhatsApp Cloud",
+                        "WHATSAPP",
+                        "META",
+                        "CONNECTED",
+                        Instant.parse("2026-03-20T08:40:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/integrations")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].channelType").value("WHATSAPP"));
+    }
+
+    @Test
+    void viewerCannotCreateIntegration() throws Exception {
+        mockMvc.perform(post("/api/v1/integrations")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"WhatsApp Cloud","channelType":"WHATSAPP","provider":"META","status":"CONNECTED"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadCommunications() throws Exception {
+        when(conversationRecordService.list()).thenReturn(List.of(
+                new ConversationRecordDto(
+                        81L,
+                        "Welcome email",
+                        "EMAIL",
+                        "OUTBOUND",
+                        "jane@example.com",
+                        "Welcome",
+                        "Thanks for your interest.",
+                        "LEAD",
+                        1L,
+                        Instant.parse("2026-03-20T08:45:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/communications")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].channelType").value("EMAIL"));
+    }
+
+    @Test
+    void adminCanCreateAiDraft() throws Exception {
+        when(aiInteractionService.draft(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        91L,
+                        "Welcome follow-up",
+                        "DRAFT",
+                        "LEAD",
+                        1L,
+                        "Write a short follow-up email",
+                        "Draft (EMAIL, PROFESSIONAL): Write a short follow-up email",
+                        "local-mock",
+                        Instant.parse("2026-03-20T08:50:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/draft")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Welcome follow-up","sourceType":"LEAD","sourceId":1,"instructions":"Write a short follow-up email","channel":"EMAIL","tone":"PROFESSIONAL"}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("DRAFT"))
+                .andExpect(jsonPath("$.modelName").value("local-mock"));
+    }
+
+    @Test
+    void viewerCanReadAiInteractionHistory() throws Exception {
+        when(aiInteractionService.list()).thenReturn(List.of(
+                new AiInteractionDto(
+                        92L,
+                        "Lead summary",
+                        "SUMMARIZE",
+                        "LEAD",
+                        1L,
+                        "Very long lead notes",
+                        "Summary: Very long lead notes",
+                        "local-mock",
+                        Instant.parse("2026-03-20T08:55:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/ai")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].operationType").value("SUMMARIZE"));
     }
 }

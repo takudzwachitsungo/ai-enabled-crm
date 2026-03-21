@@ -1,7 +1,17 @@
 package com.dala.crm.dto;
 
 /**
- * Basic DTO for aiassistant module scaffolding.
+ * API representation of a traceable AI interaction.
  */
-public record AiInteractionDto(Long id, String name) {
+public record AiInteractionDto(
+        Long id,
+        String name,
+        String operationType,
+        String sourceType,
+        Long sourceId,
+        String promptText,
+        String outputText,
+        String modelName,
+        java.time.Instant createdAt
+) {
 }

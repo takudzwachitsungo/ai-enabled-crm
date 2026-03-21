@@ -7,7 +7,9 @@ import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.entity.Lead;
 import com.dala.crm.exception.LeadNotFoundException;
 import com.dala.crm.repo.LeadRepository;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.LeadService;
+import com.dala.crm.service.WorkflowAutomationService;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,17 @@ public class LeadServiceImpl implements LeadService {
 
     private static final String NEW_STATUS = "NEW";
     private final LeadRepository leadRepository;
+    private final AuditLogService auditLogService;
+    private final WorkflowAutomationService workflowAutomationService;
 
-    public LeadServiceImpl(LeadRepository leadRepository) {
+    public LeadServiceImpl(
+            LeadRepository leadRepository,
+            AuditLogService auditLogService,
+            WorkflowAutomationService workflowAutomationService
+    ) {
         this.leadRepository = leadRepository;
+        this.auditLogService = auditLogService;
+        this.workflowAutomationService = workflowAutomationService;
     }
 
     @Override
@@ -38,7 +48,10 @@ public class LeadServiceImpl implements LeadService {
         lead.setStatus(NEW_STATUS);
         lead.setCreatedAt(Instant.now());
 
-        return toResponse(leadRepository.save(lead));
+        Lead savedLead = leadRepository.save(lead);
+        auditLogService.record("CREATE", "LEAD", savedLead.getId(), "Created lead " + savedLead.getFullName());
+        workflowAutomationService.execute("LEAD_CREATED", "LEAD", savedLead.getId(), savedLead.getFullName());
+        return toResponse(savedLead);
     }
 
     @Override

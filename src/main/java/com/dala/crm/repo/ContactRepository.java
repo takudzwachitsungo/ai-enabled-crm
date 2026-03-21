@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ContactRepository extends JpaRepository<Contact, Long> {
 
     List<Contact> findByTenantId(String tenantId);
+
+    long countByTenantId(String tenantId);
 }

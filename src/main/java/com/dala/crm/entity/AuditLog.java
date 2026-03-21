@@ -9,11 +9,11 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /**
- * Tenant-scoped integration connection for communication channels.
+ * Immutable audit record for tenant-scoped business actions.
  */
 @Entity
-@Table(name = "integration_integrationconnection")
-public class IntegrationConnection {
+@Table(name = "audit_logs")
+public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,17 +22,20 @@ public class IntegrationConnection {
     @Column(nullable = false, length = 100)
     private String tenantId;
 
-    @Column(nullable = false, length = 160)
-    private String name;
+    @Column(nullable = false, length = 120)
+    private String actor;
 
     @Column(nullable = false, length = 40)
-    private String channelType;
-
-    @Column(nullable = false, length = 80)
-    private String provider;
+    private String action;
 
     @Column(nullable = false, length = 40)
-    private String status;
+    private String entityType;
+
+    @Column(nullable = false)
+    private Long entityId;
+
+    @Column(length = 4000)
+    private String summary;
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -53,36 +56,44 @@ public class IntegrationConnection {
         this.tenantId = tenantId;
     }
 
-    public String getName() {
-        return name;
+    public String getActor() {
+        return actor;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setActor(String actor) {
+        this.actor = actor;
     }
 
-    public String getChannelType() {
-        return channelType;
+    public String getAction() {
+        return action;
     }
 
-    public void setChannelType(String channelType) {
-        this.channelType = channelType;
+    public void setAction(String action) {
+        this.action = action;
     }
 
-    public String getProvider() {
-        return provider;
+    public String getEntityType() {
+        return entityType;
     }
 
-    public void setProvider(String provider) {
-        this.provider = provider;
+    public void setEntityType(String entityType) {
+        this.entityType = entityType;
     }
 
-    public String getStatus() {
-        return status;
+    public Long getEntityId() {
+        return entityId;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setEntityId(Long entityId) {
+        this.entityId = entityId;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 
     public Instant getCreatedAt() {

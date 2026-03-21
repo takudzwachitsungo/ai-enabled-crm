@@ -7,7 +7,9 @@ import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.exception.OpportunityNotFoundException;
 import com.dala.crm.repo.OpportunityRepository;
 import com.dala.crm.security.TenantContext;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.OpportunityService;
+import com.dala.crm.service.WorkflowAutomationService;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -21,9 +23,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class OpportunityServiceImpl implements OpportunityService {
 
     private final OpportunityRepository opportunityRepository;
+    private final AuditLogService auditLogService;
+    private final WorkflowAutomationService workflowAutomationService;
 
-    public OpportunityServiceImpl(OpportunityRepository opportunityRepository) {
+    public OpportunityServiceImpl(
+            OpportunityRepository opportunityRepository,
+            AuditLogService auditLogService,
+            WorkflowAutomationService workflowAutomationService
+    ) {
         this.opportunityRepository = opportunityRepository;
+        this.auditLogService = auditLogService;
+        this.workflowAutomationService = workflowAutomationService;
     }
 
     @Override
@@ -35,7 +45,10 @@ public class OpportunityServiceImpl implements OpportunityService {
         opportunity.setAmount(request.amount());
         opportunity.setStage(request.stage().trim());
         opportunity.setCreatedAt(Instant.now());
-        return toResponse(opportunityRepository.save(opportunity));
+        Opportunity savedOpportunity = opportunityRepository.save(opportunity);
+        auditLogService.record("CREATE", "OPPORTUNITY", savedOpportunity.getId(), "Created opportunity " + savedOpportunity.getName());
+        workflowAutomationService.execute("OPPORTUNITY_CREATED", "OPPORTUNITY", savedOpportunity.getId(), savedOpportunity.getName());
+        return toResponse(savedOpportunity);
     }
 
     @Override

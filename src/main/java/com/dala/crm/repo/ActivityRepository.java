@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findByTenantIdOrderByCreatedAtDesc(String tenantId);
+
+    long countByTenantId(String tenantId);
 }
