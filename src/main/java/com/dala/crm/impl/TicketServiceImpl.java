@@ -1,7 +1,9 @@
 package com.dala.crm.impl;
 
+import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketStatusUpdateRequest;
 import com.dala.crm.entity.Activity;
 import com.dala.crm.entity.SlaPolicy;
 import com.dala.crm.entity.Ticket;
@@ -71,6 +73,28 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public TicketResponse updateStatus(Long id, TicketStatusUpdateRequest request) {
+        Ticket ticket = currentTicket(id);
+        String status = normalizeStatus(request.status());
+        ticket.setStatus(status);
+        Ticket savedTicket = ticketRepository.save(ticket);
+        auditLogService.record("UPDATE_STATUS", "TICKET", savedTicket.getId(), "Updated ticket status to " + status);
+        recordChangeActivity(savedTicket, "Ticket status changed to " + status, trimToNull(request.note()));
+        return toResponse(savedTicket);
+    }
+
+    @Override
+    public TicketResponse updateAssignment(Long id, TicketAssignmentUpdateRequest request) {
+        Ticket ticket = currentTicket(id);
+        String assignee = request.assignee().trim();
+        ticket.setAssignee(assignee);
+        Ticket savedTicket = ticketRepository.save(ticket);
+        auditLogService.record("ASSIGN", "TICKET", savedTicket.getId(), "Assigned ticket to " + assignee);
+        recordChangeActivity(savedTicket, "Ticket assigned to " + assignee, trimToNull(request.note()));
+        return toResponse(savedTicket);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<TicketResponse> getTickets() {
         return ticketRepository.findByTenantIdOrderByCreatedAtDesc(currentTenant()).stream()
@@ -81,11 +105,7 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional(readOnly = true)
     public TicketResponse getTicket(Long id) {
-        String tenantId = currentTenant();
-        Ticket ticket = ticketRepository.findById(id)
-                .filter(record -> record.getTenantId().equals(tenantId))
-                .orElseThrow(() -> new TicketNotFoundException(id));
-        return toResponse(ticket);
+        return toResponse(currentTicket(id));
     }
 
     private void recordTimelineActivity(Ticket ticket, Instant createdAt) {
@@ -99,6 +119,18 @@ public class TicketServiceImpl implements TicketService {
                 ? "Ticket created without an active SLA policy."
                 : "Ticket due at " + ticket.getDueAt());
         activity.setCreatedAt(createdAt);
+        activityRepository.save(activity);
+    }
+
+    private void recordChangeActivity(Ticket ticket, String subject, String details) {
+        Activity activity = new Activity();
+        activity.setTenantId(ticket.getTenantId());
+        activity.setType("TICKET");
+        activity.setSubject(subject);
+        activity.setRelatedEntityType("TICKET");
+        activity.setRelatedEntityId(ticket.getId());
+        activity.setDetails(details);
+        activity.setCreatedAt(Instant.now());
         activityRepository.save(activity);
     }
 
@@ -116,6 +148,17 @@ public class TicketServiceImpl implements TicketService {
 
     private String normalizePriority(String value) {
         return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeStatus(String value) {
+        return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private Ticket currentTicket(Long id) {
+        String tenantId = currentTenant();
+        return ticketRepository.findById(id)
+                .filter(record -> record.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new TicketNotFoundException(id));
     }
 
     private String trimToNull(String value) {

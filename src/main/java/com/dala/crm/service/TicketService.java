@@ -1,7 +1,9 @@
 package com.dala.crm.service;
 
+import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketStatusUpdateRequest;
 import java.util.List;
 
 /**
@@ -13,6 +15,16 @@ public interface TicketService {
      * Creates a ticket for the current tenant.
      */
     TicketResponse createTicket(TicketCreateRequest request);
+
+    /**
+     * Updates the status of a ticket in the current tenant.
+     */
+    TicketResponse updateStatus(Long id, TicketStatusUpdateRequest request);
+
+    /**
+     * Updates the assignee of a ticket in the current tenant.
+     */
+    TicketResponse updateAssignment(Long id, TicketAssignmentUpdateRequest request);
 
     /**
      * Returns tickets for the current tenant.

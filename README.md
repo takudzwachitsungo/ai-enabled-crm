@@ -33,6 +33,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Trigger workflow-created activities from lead and opportunity creation
 - Read dashboard summary KPIs
 - Create and list service tickets
+- Update ticket status and assignment
 - Create and list SLA policies
 - Register and list integration connections
 - Create and list communication records
@@ -239,6 +240,8 @@ curl -u local-view:local-view-pass \
 - `POST /api/v1/tickets`
 - `GET /api/v1/tickets`
 - `GET /api/v1/tickets/{id}`
+- `PATCH /api/v1/tickets/{id}/status`
+- `PATCH /api/v1/tickets/{id}/assignment`
 
 ### SLA Policies
 
@@ -310,6 +313,26 @@ curl -X POST http://localhost:8080/api/v1/tickets \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: tenant-demo" \
   -d '{"title":"Payment issue","description":"Customer could not complete payment.","priority":"HIGH","assignee":"Support Team","sourceChannel":"EMAIL","relatedEntityType":"ACCOUNT","relatedEntityId":21}'
+```
+
+Update ticket status:
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/tickets/101/status \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"status":"IN_PROGRESS","note":"Support team accepted the ticket."}'
+```
+
+Update ticket assignment:
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/tickets/101/assignment \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"assignee":"Escalation Team","note":"Escalated to specialist queue."}'
 ```
 
 Read dashboard summary:
@@ -403,6 +426,7 @@ Completed:
 - communication and integration foundations
 - traceable AI summary and draft flows
 - Phase 2 ticket management and SLA due-date basics
+- Phase 2 ticket status and assignment workflows
 
 Planned next:
 

@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -397,6 +398,86 @@ class SecurityAndTenantWebLayerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"title":"Payment issue","description":"Customer could not complete payment.","priority":"HIGH","sourceChannel":"EMAIL"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanUpdateTicketStatus() throws Exception {
+        when(ticketService.updateStatus(org.mockito.ArgumentMatchers.eq(101L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new TicketResponse(
+                        101L,
+                        "Payment issue",
+                        "Customer could not complete payment.",
+                        "HIGH",
+                        "IN_PROGRESS",
+                        "Support Team",
+                        "EMAIL",
+                        "ACCOUNT",
+                        21L,
+                        Instant.parse("2026-03-20T12:00:00Z"),
+                        Instant.parse("2026-03-20T09:00:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/tickets/101/status")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"IN_PROGRESS","note":"Support team accepted the ticket."}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void viewerCannotUpdateTicketStatus() throws Exception {
+        mockMvc.perform(patch("/api/v1/tickets/101/status")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"IN_PROGRESS","note":"Support team accepted the ticket."}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanUpdateTicketAssignment() throws Exception {
+        when(ticketService.updateAssignment(org.mockito.ArgumentMatchers.eq(101L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new TicketResponse(
+                        101L,
+                        "Payment issue",
+                        "Customer could not complete payment.",
+                        "HIGH",
+                        "OPEN",
+                        "Escalation Team",
+                        "EMAIL",
+                        "ACCOUNT",
+                        21L,
+                        Instant.parse("2026-03-20T12:00:00Z"),
+                        Instant.parse("2026-03-20T09:00:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/tickets/101/assignment")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"assignee":"Escalation Team","note":"Escalated to specialist queue."}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignee").value("Escalation Team"));
+    }
+
+    @Test
+    void viewerCannotUpdateTicketAssignment() throws Exception {
+        mockMvc.perform(patch("/api/v1/tickets/101/assignment")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"assignee":"Escalation Team","note":"Escalated to specialist queue."}
                                 """.trim()))
                 .andExpect(status().isForbidden());
     }

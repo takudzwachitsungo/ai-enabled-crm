@@ -1,7 +1,9 @@
 package com.dala.crm.controller;
 
+import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketStatusUpdateRequest;
 import com.dala.crm.service.TicketService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -9,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +36,18 @@ public class TicketController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_WRITE)")
     public TicketResponse createTicket(@Valid @RequestBody TicketCreateRequest request) {
         return ticketService.createTicket(request);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_WRITE)")
+    public TicketResponse updateStatus(@PathVariable Long id, @Valid @RequestBody TicketStatusUpdateRequest request) {
+        return ticketService.updateStatus(id, request);
+    }
+
+    @PatchMapping("/{id}/assignment")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_WRITE)")
+    public TicketResponse updateAssignment(@PathVariable Long id, @Valid @RequestBody TicketAssignmentUpdateRequest request) {
+        return ticketService.updateAssignment(id, request);
     }
 
     @GetMapping
