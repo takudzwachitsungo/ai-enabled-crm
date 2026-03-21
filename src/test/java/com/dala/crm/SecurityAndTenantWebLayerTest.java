@@ -14,12 +14,14 @@ import com.dala.crm.controller.AccountController;
 import com.dala.crm.controller.ActivityController;
 import com.dala.crm.controller.AiInteractionController;
 import com.dala.crm.controller.AuditLogController;
+import com.dala.crm.controller.CannedResponseController;
 import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.ConversationRecordController;
 import com.dala.crm.controller.DashboardController;
 import com.dala.crm.controller.HealthController;
 import com.dala.crm.controller.IdentityController;
 import com.dala.crm.controller.IntegrationConnectionController;
+import com.dala.crm.controller.KnowledgeBaseArticleController;
 import com.dala.crm.controller.LeadController;
 import com.dala.crm.controller.OpportunityController;
 import com.dala.crm.controller.SlaPolicyController;
@@ -34,12 +36,14 @@ import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
 import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.dto.IntegrationConnectionDto;
+import com.dala.crm.dto.KnowledgeBaseArticleResponse;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
 import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.WorkflowDefinitionDto;
+import com.dala.crm.dto.CannedResponseResponse;
 import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
@@ -51,11 +55,13 @@ import com.dala.crm.service.ContactService;
 import com.dala.crm.service.ConversationRecordService;
 import com.dala.crm.service.DashboardService;
 import com.dala.crm.service.IntegrationConnectionService;
+import com.dala.crm.service.KnowledgeBaseArticleService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
 import com.dala.crm.service.SlaPolicyService;
 import com.dala.crm.service.TicketService;
 import com.dala.crm.service.WorkflowDefinitionService;
+import com.dala.crm.service.CannedResponseService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -80,6 +86,8 @@ import org.springframework.test.web.servlet.MockMvc;
         WorkflowDefinitionController.class,
         DashboardController.class,
         IntegrationConnectionController.class,
+        KnowledgeBaseArticleController.class,
+        CannedResponseController.class,
         ConversationRecordController.class,
         AiInteractionController.class,
         TicketController.class,
@@ -117,6 +125,12 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private IntegrationConnectionService integrationConnectionService;
+
+    @MockBean
+    private KnowledgeBaseArticleService knowledgeBaseArticleService;
+
+    @MockBean
+    private CannedResponseService cannedResponseService;
 
     @MockBean
     private ConversationRecordService conversationRecordService;
@@ -181,6 +195,8 @@ class SecurityAndTenantWebLayerTest {
                         "crm:activities:read",
                         "crm:tickets:read",
                         "crm:sla-policies:read",
+                        "crm:knowledge-base:read",
+                        "crm:canned-responses:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -555,6 +571,70 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].channelType").value("WHATSAPP"));
+    }
+
+    @Test
+    void viewerCanReadKnowledgeBaseArticles() throws Exception {
+        when(knowledgeBaseArticleService.list()).thenReturn(List.of(
+                new KnowledgeBaseArticleResponse(
+                        121L,
+                        "Reset payment settings",
+                        "BILLING",
+                        "Steps to reset payment settings.",
+                        true,
+                        Instant.parse("2026-03-20T09:20:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/knowledge-base")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].category").value("BILLING"));
+    }
+
+    @Test
+    void viewerCannotCreateKnowledgeBaseArticle() throws Exception {
+        mockMvc.perform(post("/api/v1/knowledge-base")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Reset payment settings","category":"BILLING","body":"Steps to reset payment settings.","published":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadCannedResponses() throws Exception {
+        when(cannedResponseService.list()).thenReturn(List.of(
+                new CannedResponseResponse(
+                        131L,
+                        "Payment issue acknowledgement",
+                        "EMAIL",
+                        "BILLING",
+                        "We are looking into your payment issue.",
+                        Instant.parse("2026-03-20T09:30:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/canned-responses")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].channelType").value("EMAIL"));
+    }
+
+    @Test
+    void viewerCannotCreateCannedResponse() throws Exception {
+        mockMvc.perform(post("/api/v1/canned-responses")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Payment issue acknowledgement","channelType":"EMAIL","category":"BILLING","body":"We are looking into your payment issue."}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test

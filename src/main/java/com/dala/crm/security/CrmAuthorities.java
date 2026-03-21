@@ -22,6 +22,10 @@ public final class CrmAuthorities {
     public static final String TICKETS_WRITE = "crm:tickets:write";
     public static final String SLA_POLICIES_READ = "crm:sla-policies:read";
     public static final String SLA_POLICIES_WRITE = "crm:sla-policies:write";
+    public static final String KNOWLEDGE_BASE_READ = "crm:knowledge-base:read";
+    public static final String KNOWLEDGE_BASE_WRITE = "crm:knowledge-base:write";
+    public static final String CANNED_RESPONSES_READ = "crm:canned-responses:read";
+    public static final String CANNED_RESPONSES_WRITE = "crm:canned-responses:write";
     public static final String INTEGRATIONS_READ = "crm:integrations:read";
     public static final String INTEGRATIONS_WRITE = "crm:integrations:write";
     public static final String COMMUNICATIONS_READ = "crm:communications:read";

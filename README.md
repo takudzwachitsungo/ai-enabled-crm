@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and the first Phase 2 service operations slice, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules, dashboard metrics, and traceable AI interactions.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and multiple Phase 2 service operations slices, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules, knowledge content management, dashboard metrics, and traceable AI interactions.
 
 ## What This Repository Includes
 
@@ -9,6 +9,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Core CRM records: leads, contacts, accounts, opportunities
 - Activities and timeline feed
 - Service tickets and SLA policy management
+- Knowledge base articles and canned response templates
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
@@ -36,6 +37,8 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Update ticket status and assignment
 - Run SLA escalation for overdue tickets
 - Create and list SLA policies
+- Create and list knowledge base articles
+- Create and list canned responses
 - Register and list integration connections
 - Create and list communication records
 - Read tenant audit history
@@ -173,10 +176,10 @@ Current local users:
 
 ```text
 local-dev / local-dev-pass
-  Full read/write access across CRM, tickets, SLA policies, workflows, integrations, communications, AI, dashboard, and audit logs
+  Full read/write access across CRM, tickets, SLA policies, knowledge content, workflows, integrations, communications, AI, dashboard, and audit logs
 
 local-view / local-view-pass
-  Read access across CRM, tickets, SLA policies, workflows, integrations, communications, AI history, dashboard, and identity
+  Read access across CRM, tickets, SLA policies, knowledge content, workflows, integrations, communications, AI history, dashboard, and identity
 ```
 
 All protected requests must include:
@@ -249,6 +252,18 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/sla-policies`
 - `GET /api/v1/sla-policies`
+
+### Knowledge Base
+
+- `POST /api/v1/knowledge-base`
+- `GET /api/v1/knowledge-base`
+- `GET /api/v1/knowledge-base/{id}`
+
+### Canned Responses
+
+- `POST /api/v1/canned-responses`
+- `GET /api/v1/canned-responses`
+- `GET /api/v1/canned-responses/{id}`
 
 ### Workflows
 
@@ -345,6 +360,26 @@ curl -X POST http://localhost:8080/api/v1/tickets/escalations/run \
   -H "X-Tenant-Id: tenant-demo"
 ```
 
+Create a knowledge base article:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/knowledge-base \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"title":"Refund policy","category":"Billing","body":"Refunds are reviewed within five business days after the request is verified.","published":true}'
+```
+
+Create a canned response:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/canned-responses \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"title":"Shipping delay update","channelType":"EMAIL","category":"Support","body":"Thanks for your patience. Your order is still in transit and we will share the next update within 24 hours."}'
+```
+
 Read dashboard summary:
 
 ```bash
@@ -415,7 +450,7 @@ mvn test
 - authentication and tenant enforcement
 - authority checks for writers vs readers
 - timeline and audit log access control
-- workflow, dashboard, ticket, SLA, integration, communication, and AI endpoint security
+- workflow, dashboard, ticket, SLA, knowledge content, integration, communication, and AI endpoint security
 
 ### CI
 
@@ -438,10 +473,10 @@ Completed:
 - Phase 2 ticket management and SLA due-date basics
 - Phase 2 ticket status and assignment workflows
 - Phase 2 SLA breach escalation automation
+- Phase 2 knowledge base and canned response foundations
 
 Planned next:
 
-- knowledge base and canned responses
 - campaigns, audience segmentation, and scheduled reporting
 - richer SLA policies and assignment rules
 - JWT or OAuth2 resource server integration
