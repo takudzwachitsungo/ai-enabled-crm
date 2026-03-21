@@ -5,6 +5,7 @@ import com.dala.crm.dto.AiAccountHealthRequest;
 import com.dala.crm.dto.AiChurnRiskRequest;
 import com.dala.crm.dto.AiInteractionDto;
 import com.dala.crm.dto.AiLeadScoreRequest;
+import com.dala.crm.dto.AiProviderResponse;
 import com.dala.crm.dto.AiRecommendationRequest;
 import com.dala.crm.dto.AiSummarizeRequest;
 import com.dala.crm.entity.Activity;
@@ -20,6 +21,7 @@ import com.dala.crm.repo.ConversationRecordRepository;
 import com.dala.crm.repo.LeadRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AuditLogService;
+import com.dala.crm.service.AiGatewayClient;
 import com.dala.crm.service.AiInteractionService;
 import java.time.Instant;
 import java.util.List;
@@ -39,6 +41,7 @@ public class AiInteractionServiceImpl implements AiInteractionService {
     private final ActivityRepository activityRepository;
     private final ConversationRecordRepository conversationRecordRepository;
     private final CommerceEventRepository commerceEventRepository;
+    private final AiGatewayClient aiGatewayClient;
     private final AuditLogService auditLogService;
 
     public AiInteractionServiceImpl(
@@ -48,6 +51,7 @@ public class AiInteractionServiceImpl implements AiInteractionService {
             ActivityRepository activityRepository,
             ConversationRecordRepository conversationRecordRepository,
             CommerceEventRepository commerceEventRepository,
+            AiGatewayClient aiGatewayClient,
             AuditLogService auditLogService
     ) {
         this.repository = repository;
@@ -56,24 +60,23 @@ public class AiInteractionServiceImpl implements AiInteractionService {
         this.activityRepository = activityRepository;
         this.conversationRecordRepository = conversationRecordRepository;
         this.commerceEventRepository = commerceEventRepository;
+        this.aiGatewayClient = aiGatewayClient;
         this.auditLogService = auditLogService;
     }
 
     @Override
     public AiInteractionDto summarize(AiSummarizeRequest request) {
         String promptText = request.text().trim();
-        String normalized = promptText.replaceAll("\\s+", " ").trim();
-        String summary = normalized.length() <= 180
-                ? normalized
-                : normalized.substring(0, 177) + "...";
-        String output = "Summary: " + summary;
+        AiProviderResponse aiResponse = aiGatewayClient.summarize(promptText, 4)
+                .orElseGet(() -> new AiProviderResponse("spring-fallback", "local-summary", fallbackSummary(promptText)));
         return saveInteraction(
                 request.name().trim(),
                 "SUMMARIZE",
                 request.sourceType().trim(),
                 request.sourceId(),
                 promptText,
-                output
+                aiResponse.output(),
+                modelName(aiResponse)
         );
     }
 
@@ -82,14 +85,23 @@ public class AiInteractionServiceImpl implements AiInteractionService {
         String channel = normalizeOrDefault(request.channel(), "EMAIL");
         String tone = normalizeOrDefault(request.tone(), "PROFESSIONAL");
         String instructions = request.instructions().trim();
-        String output = "Draft (" + channel + ", " + tone + "): " + instructions;
+        AiProviderResponse aiResponse = aiGatewayClient.draft(
+                "Draft a " + channel + " response",
+                instructions,
+                tone.toLowerCase()
+        ).orElseGet(() -> new AiProviderResponse(
+                "spring-fallback",
+                "local-draft",
+                "Draft (" + channel + ", " + tone + "): " + instructions
+        ));
         return saveInteraction(
                 request.name().trim(),
                 "DRAFT",
                 request.sourceType().trim(),
                 request.sourceId(),
                 instructions,
-                output
+                aiResponse.output(),
+                modelName(aiResponse)
         );
     }
 
@@ -125,7 +137,8 @@ public class AiInteractionServiceImpl implements AiInteractionService {
                 "LEAD",
                 lead.getId(),
                 prompt,
-                output
+                output,
+                "crm-rules"
         );
     }
 
@@ -164,7 +177,8 @@ public class AiInteractionServiceImpl implements AiInteractionService {
                 "ACCOUNT",
                 account.getId(),
                 prompt,
-                output
+                output,
+                "crm-rules"
         );
     }
 
@@ -216,7 +230,8 @@ public class AiInteractionServiceImpl implements AiInteractionService {
                 "ACCOUNT",
                 account.getId(),
                 prompt,
-                output
+                output,
+                "crm-rules"
         );
     }
 
@@ -245,7 +260,8 @@ public class AiInteractionServiceImpl implements AiInteractionService {
                 sourceType,
                 sourceId,
                 "Objective: " + objective,
-                output
+                output,
+                "crm-rules"
         );
     }
 
@@ -263,7 +279,8 @@ public class AiInteractionServiceImpl implements AiInteractionService {
             String sourceType,
             Long sourceId,
             String promptText,
-            String outputText
+            String outputText,
+            String modelName
     ) {
         AiInteraction interaction = new AiInteraction();
         interaction.setTenantId(currentTenant());
@@ -273,7 +290,7 @@ public class AiInteractionServiceImpl implements AiInteractionService {
         interaction.setSourceId(sourceId);
         interaction.setPromptText(promptText);
         interaction.setOutputText(outputText);
-        interaction.setModelName("local-mock");
+        interaction.setModelName(modelName);
         interaction.setCreatedAt(Instant.now());
         AiInteraction savedInteraction = repository.save(interaction);
         auditLogService.record(
@@ -369,6 +386,24 @@ public class AiInteractionServiceImpl implements AiInteractionService {
                 "Created AI recommendation follow-up activity for " + sourceType + " " + sourceId
         );
         return saved;
+    }
+
+    private String fallbackSummary(String promptText) {
+        String normalized = promptText.replaceAll("\\s+", " ").trim();
+        String summary = normalized.length() <= 180
+                ? normalized
+                : normalized.substring(0, 177) + "...";
+        return "Summary: " + summary;
+    }
+
+    private String modelName(AiProviderResponse aiResponse) {
+        String provider = aiResponse.provider() == null || aiResponse.provider().isBlank()
+                ? "provider"
+                : aiResponse.provider().trim();
+        String model = aiResponse.model() == null || aiResponse.model().isBlank()
+                ? "model"
+                : aiResponse.model().trim();
+        return provider + ":" + model;
     }
 
     private AiInteractionDto toDto(AiInteraction interaction) {

@@ -29,3 +29,9 @@ logging:
   level:
     org.springframework.web: INFO
     org.hibernate.SQL: WARN
+
+ai:
+  service:
+    enabled: ${AI_SERVICE_ENABLED:true}
+    base-url: ${AI_SERVICE_BASE_URL:http://localhost:8090}
+    timeout-ms: ${AI_SERVICE_TIMEOUT_MS:3000}

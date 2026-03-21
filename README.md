@@ -23,6 +23,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Communication record tracking
 - Dashboard summary metrics
 - Traceable AI summary, draft, lead scoring, account health, churn risk, and recommendation endpoints
+- Spring-to-Python AI orchestration with local fallback for summarize and draft flows
 - Audit logging for key tenant-scoped actions
 - Python AI service boundary for model-facing work
 - Docker Compose and GitHub Actions for local setup and CI
@@ -187,8 +188,12 @@ The Python AI service is controlled through:
 - `AI_PROVIDER`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
+- `AI_SERVICE_ENABLED`
+- `AI_SERVICE_BASE_URL`
+- `AI_SERVICE_TIMEOUT_MS`
 
 The included `mock` provider is the default for local development.
+The Spring backend will call the Python AI service for summarize and draft requests when it is reachable, and fall back to deterministic local behavior if it is not.
 
 ## Local Authentication Model
 
@@ -754,11 +759,12 @@ Completed:
 - Phase 3 commerce connector sync and lifecycle enrichment
 - Phase 3 renewal automation foundations
 - Phase 3 refund and cancellation workflow foundations
+- Phase 3 AI provider orchestration foundations
 
 Planned next:
 
 - JWT or OAuth2 resource server integration
-- production-grade AI provider orchestration from the Spring backend
+- deeper provider routing and AI outcome evaluation
 
 ## Notes
 
