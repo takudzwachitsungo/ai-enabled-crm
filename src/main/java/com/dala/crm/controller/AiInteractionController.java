@@ -2,8 +2,10 @@ package com.dala.crm.controller;
 
 import com.dala.crm.dto.AiDraftRequest;
 import com.dala.crm.dto.AiAccountHealthRequest;
+import com.dala.crm.dto.AiChurnRiskRequest;
 import com.dala.crm.dto.AiInteractionDto;
 import com.dala.crm.dto.AiLeadScoreRequest;
+import com.dala.crm.dto.AiRecommendationRequest;
 import com.dala.crm.dto.AiSummarizeRequest;
 import com.dala.crm.service.AiInteractionService;
 import jakarta.validation.Valid;
@@ -56,6 +58,20 @@ public class AiInteractionController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).AI_INTERACTIONS_WRITE)")
     public AiInteractionDto assessAccountHealth(@Valid @RequestBody AiAccountHealthRequest request) {
         return aiInteractionService.assessAccountHealth(request);
+    }
+
+    @PostMapping("/churn-risk")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).AI_INTERACTIONS_WRITE)")
+    public AiInteractionDto assessChurnRisk(@Valid @RequestBody AiChurnRiskRequest request) {
+        return aiInteractionService.assessChurnRisk(request);
+    }
+
+    @PostMapping("/recommend")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).AI_INTERACTIONS_WRITE)")
+    public AiInteractionDto recommendNextAction(@Valid @RequestBody AiRecommendationRequest request) {
+        return aiInteractionService.recommendNextAction(request);
     }
 
     @GetMapping

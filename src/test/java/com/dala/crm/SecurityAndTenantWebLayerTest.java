@@ -1151,6 +1151,86 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanCreateAiChurnRisk() throws Exception {
+        when(aiInteractionService.assessChurnRisk(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        95L,
+                        "Account churn risk",
+                        "CHURN_RISK",
+                        "ACCOUNT",
+                        21L,
+                        "Assess churn risk for account Acme Corp",
+                        "Account churn risk 72/100 (HIGH) for Acme Corp.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:25:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/churn-risk")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account churn risk","accountId":21}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("CHURN_RISK"))
+                .andExpect(jsonPath("$.sourceType").value("ACCOUNT"));
+    }
+
+    @Test
+    void adminCanCreateAiRecommendation() throws Exception {
+        when(aiInteractionService.recommendNextAction(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        96L,
+                        "Next best action",
+                        "RECOMMENDATION",
+                        "LEAD",
+                        1L,
+                        "Objective: Increase conversion",
+                        "Recommended next action: schedule a qualification call.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:30:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/recommend")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("RECOMMENDATION"))
+                .andExpect(jsonPath("$.sourceType").value("LEAD"));
+    }
+
+    @Test
+    void viewerCannotCreateAiChurnRisk() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/churn-risk")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account churn risk","accountId":21}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCannotCreateAiRecommendation() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/recommend")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void viewerCanReadAiInteractionHistory() throws Exception {
         when(aiInteractionService.list()).thenReturn(List.of(
                 new AiInteractionDto(

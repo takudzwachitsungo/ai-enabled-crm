@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CommerceEventRepository extends JpaRepository<CommerceEvent, Long> {
 
     List<CommerceEvent> findByTenantIdOrderByCreatedAtDesc(String tenantId);
+
+    long countByTenantIdAndRelatedEntityTypeAndRelatedEntityId(String tenantId, String relatedEntityType, Long relatedEntityId);
 }
