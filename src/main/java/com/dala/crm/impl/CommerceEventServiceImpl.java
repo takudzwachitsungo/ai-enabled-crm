@@ -4,12 +4,18 @@ import com.dala.crm.dto.CommerceEventCreateRequest;
 import com.dala.crm.dto.CommerceEventResponse;
 import com.dala.crm.entity.Activity;
 import com.dala.crm.entity.CommerceEvent;
+import com.dala.crm.entity.ConversationRecord;
 import com.dala.crm.entity.IntegrationConnection;
+import com.dala.crm.entity.Invoice;
+import com.dala.crm.entity.Quote;
 import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.exception.CommerceEventNotFoundException;
 import com.dala.crm.repo.ActivityRepository;
 import com.dala.crm.repo.CommerceEventRepository;
+import com.dala.crm.repo.ConversationRecordRepository;
 import com.dala.crm.repo.IntegrationConnectionRepository;
+import com.dala.crm.repo.InvoiceRepository;
+import com.dala.crm.repo.QuoteRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.CommerceEventService;
@@ -28,17 +34,26 @@ public class CommerceEventServiceImpl implements CommerceEventService {
 
     private final CommerceEventRepository commerceEventRepository;
     private final IntegrationConnectionRepository integrationConnectionRepository;
+    private final QuoteRepository quoteRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final ConversationRecordRepository conversationRecordRepository;
     private final ActivityRepository activityRepository;
     private final AuditLogService auditLogService;
 
     public CommerceEventServiceImpl(
             CommerceEventRepository commerceEventRepository,
             IntegrationConnectionRepository integrationConnectionRepository,
+            QuoteRepository quoteRepository,
+            InvoiceRepository invoiceRepository,
+            ConversationRecordRepository conversationRecordRepository,
             ActivityRepository activityRepository,
             AuditLogService auditLogService
     ) {
         this.commerceEventRepository = commerceEventRepository;
         this.integrationConnectionRepository = integrationConnectionRepository;
+        this.quoteRepository = quoteRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.conversationRecordRepository = conversationRecordRepository;
         this.activityRepository = activityRepository;
         this.auditLogService = auditLogService;
     }
@@ -68,6 +83,7 @@ public class CommerceEventServiceImpl implements CommerceEventService {
                 savedEvent.getId(),
                 "Imported " + savedEvent.getEventType() + " from " + connection.getName()
         );
+        processLifecycleSync(savedEvent, connection, now);
         recordActivity(savedEvent, connection.getName(), now);
         return toResponse(savedEvent, connection);
     }
@@ -96,6 +112,50 @@ public class CommerceEventServiceImpl implements CommerceEventService {
         }
     }
 
+    private void processLifecycleSync(CommerceEvent event, IntegrationConnection connection, Instant now) {
+        String relatedEntityType = event.getRelatedEntityType();
+        Long relatedEntityId = event.getRelatedEntityId();
+        if (relatedEntityType == null || relatedEntityId == null) {
+            return;
+        }
+
+        String eventType = event.getEventType();
+        if ("QUOTE".equals(relatedEntityType) && "QUOTE_ACCEPTED".equals(eventType)) {
+            Quote quote = currentQuote(event.getTenantId(), relatedEntityId);
+            quote.setStatus("APPROVED");
+            quoteRepository.save(quote);
+            auditLogService.record("SYNC", "QUOTE", quote.getId(), "Synced quote approval from commerce event " + event.getSourceReference());
+            recordSyncActivity(event.getTenantId(), "QUOTE", quote.getId(), "Quote approved from connector", "Source reference: " + event.getSourceReference(), now);
+            return;
+        }
+
+        if ("INVOICE".equals(relatedEntityType) && "PAYMENT_RECEIVED".equals(eventType)) {
+            Invoice invoice = currentInvoice(event.getTenantId(), relatedEntityId);
+            invoice.setStatus("PAID");
+            invoiceRepository.save(invoice);
+            auditLogService.record("SYNC", "INVOICE", invoice.getId(), "Synced invoice payment from commerce event " + event.getSourceReference());
+            recordSyncActivity(event.getTenantId(), "INVOICE", invoice.getId(), "Invoice paid from connector", "Source reference: " + event.getSourceReference(), now);
+            return;
+        }
+
+        if ("ACCOUNT".equals(relatedEntityType) && "SALE_COMPLETED".equals(eventType)) {
+            ConversationRecord record = new ConversationRecord();
+            record.setTenantId(event.getTenantId());
+            record.setName("Commerce sync: " + event.getEventType());
+            record.setChannelType(connection.getChannelType());
+            record.setDirection("INBOUND");
+            record.setParticipant(connection.getName());
+            record.setSubject("Commerce lifecycle update");
+            record.setMessageBody("Imported " + event.getEventType() + " from " + connection.getName() + " with reference " + event.getSourceReference() + ".");
+            record.setRelatedEntityType("ACCOUNT");
+            record.setRelatedEntityId(relatedEntityId);
+            record.setCreatedAt(now);
+            ConversationRecord savedRecord = conversationRecordRepository.save(record);
+            auditLogService.record("SYNC", "COMMUNICATION", savedRecord.getId(), "Recorded commerce lifecycle communication for account " + relatedEntityId);
+            recordSyncActivity(event.getTenantId(), "ACCOUNT", relatedEntityId, "Commerce sale synced to account", "Source reference: " + event.getSourceReference(), now);
+        }
+    }
+
     private void recordActivity(CommerceEvent event, String integrationName, Instant createdAt) {
         Activity activity = new Activity();
         activity.setTenantId(event.getTenantId());
@@ -104,6 +164,18 @@ public class CommerceEventServiceImpl implements CommerceEventService {
         activity.setRelatedEntityType("COMMERCE_EVENT");
         activity.setRelatedEntityId(event.getId());
         activity.setDetails("Integration: " + integrationName + ", source reference: " + event.getSourceReference());
+        activity.setCreatedAt(createdAt);
+        activityRepository.save(activity);
+    }
+
+    private void recordSyncActivity(String tenantId, String relatedEntityType, Long relatedEntityId, String subject, String details, Instant createdAt) {
+        Activity activity = new Activity();
+        activity.setTenantId(tenantId);
+        activity.setType("COMMERCE_SYNC");
+        activity.setSubject(subject);
+        activity.setRelatedEntityType(relatedEntityType);
+        activity.setRelatedEntityId(relatedEntityId);
+        activity.setDetails(details);
         activity.setCreatedAt(createdAt);
         activityRepository.save(activity);
     }
@@ -119,6 +191,18 @@ public class CommerceEventServiceImpl implements CommerceEventService {
         return integrationConnectionRepository.findById(id)
                 .filter(record -> record.getTenantId().equals(tenantId))
                 .orElseThrow(() -> new BadRequestException("Integration connection not found: " + id));
+    }
+
+    private Quote currentQuote(String tenantId, Long id) {
+        return quoteRepository.findById(id)
+                .filter(record -> record.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BadRequestException("Quote not found: " + id));
+    }
+
+    private Invoice currentInvoice(String tenantId, Long id) {
+        return invoiceRepository.findById(id)
+                .filter(record -> record.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BadRequestException("Invoice not found: " + id));
     }
 
     private String currentTenant() {

@@ -17,6 +17,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Ticket SLA lifecycle reporting and campaign metrics
 - Product catalog, quotes, and invoices foundations
 - POS and ERP connector groundwork with commerce event ingestion
+- Commerce connector sync with quote, invoice, and account lifecycle enrichment
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
@@ -543,6 +544,12 @@ curl -X POST http://localhost:8080/api/v1/commerce-events \
   -d '{"integrationConnectionId":71,"eventType":"SALE_COMPLETED","sourceReference":"POS-1001","relatedEntityType":"ACCOUNT","relatedEntityId":21,"amount":12500.00,"payload":"items=1"}'
 ```
 
+Connector sync behaviors currently supported:
+
+- `QUOTE_ACCEPTED` linked to `QUOTE` marks the quote as `APPROVED`
+- `PAYMENT_RECEIVED` linked to `INVOICE` marks the invoice as `PAID`
+- `SALE_COMPLETED` linked to `ACCOUNT` records an inbound commerce communication and sync activity
+
 Read dashboard analytics:
 
 ```bash
@@ -713,11 +720,11 @@ Completed:
 - Phase 3 churn risk and recommendation automation foundations
 - Phase 3 forecasting and revenue intelligence foundations
 - Phase 3 quote-to-invoice lifecycle automation
+- Phase 3 commerce connector sync and lifecycle enrichment
 
 Planned next:
 
-- deeper commerce workflows and connector sync automation
-- commerce connector sync and lifecycle enrichment
+- advanced commerce workflows and renewal automation
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 
