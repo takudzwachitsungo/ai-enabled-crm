@@ -1,5 +1,6 @@
 package com.dala.crm.service;
 
+import com.dala.crm.dto.DashboardAnalyticsResponse;
 import com.dala.crm.dto.DashboardSummaryResponse;
 
 /**
@@ -11,4 +12,9 @@ public interface DashboardService {
      * Returns an aggregate summary for the current tenant.
      */
     DashboardSummaryResponse getSummary();
+
+    /**
+     * Returns expanded analytics for the current tenant.
+     */
+    DashboardAnalyticsResponse getAnalytics();
 }

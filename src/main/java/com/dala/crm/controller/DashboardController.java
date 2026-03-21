@@ -1,5 +1,6 @@
 package com.dala.crm.controller;
 
+import com.dala.crm.dto.DashboardAnalyticsResponse;
 import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.service.DashboardService;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,5 +25,11 @@ public class DashboardController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).DASHBOARD_READ)")
     public DashboardSummaryResponse getSummary() {
         return dashboardService.getSummary();
+    }
+
+    @GetMapping("/analytics")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).DASHBOARD_READ)")
+    public DashboardAnalyticsResponse getAnalytics() {
+        return dashboardService.getAnalytics();
     }
 }

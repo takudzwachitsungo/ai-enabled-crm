@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CannedResponseRepository extends JpaRepository<CannedResponse, Long> {
 
     List<CannedResponse> findByTenantIdOrderByCreatedAtDesc(String tenantId);
+
+    long countByTenantId(String tenantId);
 }

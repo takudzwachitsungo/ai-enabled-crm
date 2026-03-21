@@ -1,15 +1,21 @@
 package com.dala.crm.impl;
 
+import com.dala.crm.dto.DashboardAnalyticsResponse;
 import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.repo.AccountRepository;
 import com.dala.crm.repo.ActivityRepository;
 import com.dala.crm.repo.AiInteractionRepository;
+import com.dala.crm.repo.AudienceSegmentRepository;
+import com.dala.crm.repo.CampaignRepository;
+import com.dala.crm.repo.CannedResponseRepository;
 import com.dala.crm.repo.ContactRepository;
 import com.dala.crm.repo.ConversationRecordRepository;
 import com.dala.crm.repo.IntegrationConnectionRepository;
+import com.dala.crm.repo.KnowledgeBaseArticleRepository;
 import com.dala.crm.repo.LeadRepository;
 import com.dala.crm.repo.OpportunityRepository;
+import com.dala.crm.repo.ReportSnapshotRepository;
 import com.dala.crm.repo.TicketRepository;
 import com.dala.crm.repo.WorkflowDefinitionRepository;
 import com.dala.crm.security.TenantContext;
@@ -35,6 +41,11 @@ public class DashboardServiceImpl implements DashboardService {
     private final IntegrationConnectionRepository integrationConnectionRepository;
     private final ConversationRecordRepository conversationRecordRepository;
     private final AiInteractionRepository aiInteractionRepository;
+    private final KnowledgeBaseArticleRepository knowledgeBaseArticleRepository;
+    private final CannedResponseRepository cannedResponseRepository;
+    private final AudienceSegmentRepository audienceSegmentRepository;
+    private final CampaignRepository campaignRepository;
+    private final ReportSnapshotRepository reportSnapshotRepository;
 
     public DashboardServiceImpl(
             LeadRepository leadRepository,
@@ -46,7 +57,12 @@ public class DashboardServiceImpl implements DashboardService {
             WorkflowDefinitionRepository workflowDefinitionRepository,
             IntegrationConnectionRepository integrationConnectionRepository,
             ConversationRecordRepository conversationRecordRepository,
-            AiInteractionRepository aiInteractionRepository
+            AiInteractionRepository aiInteractionRepository,
+            KnowledgeBaseArticleRepository knowledgeBaseArticleRepository,
+            CannedResponseRepository cannedResponseRepository,
+            AudienceSegmentRepository audienceSegmentRepository,
+            CampaignRepository campaignRepository,
+            ReportSnapshotRepository reportSnapshotRepository
     ) {
         this.leadRepository = leadRepository;
         this.contactRepository = contactRepository;
@@ -58,6 +74,11 @@ public class DashboardServiceImpl implements DashboardService {
         this.integrationConnectionRepository = integrationConnectionRepository;
         this.conversationRecordRepository = conversationRecordRepository;
         this.aiInteractionRepository = aiInteractionRepository;
+        this.knowledgeBaseArticleRepository = knowledgeBaseArticleRepository;
+        this.cannedResponseRepository = cannedResponseRepository;
+        this.audienceSegmentRepository = audienceSegmentRepository;
+        this.campaignRepository = campaignRepository;
+        this.reportSnapshotRepository = reportSnapshotRepository;
     }
 
     @Override
@@ -75,6 +96,21 @@ public class DashboardServiceImpl implements DashboardService {
                 integrationConnectionRepository.countByTenantId(tenantId),
                 conversationRecordRepository.countByTenantId(tenantId),
                 aiInteractionRepository.countByTenantId(tenantId)
+        );
+    }
+
+    @Override
+    public DashboardAnalyticsResponse getAnalytics() {
+        String tenantId = currentTenant();
+        return new DashboardAnalyticsResponse(
+                knowledgeBaseArticleRepository.countByTenantIdAndPublishedTrue(tenantId),
+                cannedResponseRepository.countByTenantId(tenantId),
+                audienceSegmentRepository.countByTenantIdAndActiveTrue(tenantId),
+                campaignRepository.countByTenantIdAndStatus(tenantId, "DRAFT"),
+                campaignRepository.countByTenantIdAndStatus(tenantId, "SCHEDULED"),
+                ticketRepository.countByTenantIdAndStatus(tenantId, "OPEN"),
+                ticketRepository.countByTenantIdAndStatus(tenantId, "ESCALATED"),
+                reportSnapshotRepository.countByTenantId(tenantId)
         );
     }
 

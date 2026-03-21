@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface KnowledgeBaseArticleRepository extends JpaRepository<KnowledgeBaseArticle, Long> {
 
     List<KnowledgeBaseArticle> findByTenantIdOrderByCreatedAtDesc(String tenantId);
+
+    long countByTenantIdAndPublishedTrue(String tenantId);
 }

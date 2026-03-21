@@ -26,6 +26,7 @@ import com.dala.crm.controller.IntegrationConnectionController;
 import com.dala.crm.controller.KnowledgeBaseArticleController;
 import com.dala.crm.controller.LeadController;
 import com.dala.crm.controller.OpportunityController;
+import com.dala.crm.controller.ReportSnapshotController;
 import com.dala.crm.controller.SlaPolicyController;
 import com.dala.crm.controller.TicketController;
 import com.dala.crm.controller.TimelineController;
@@ -43,6 +44,7 @@ import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.KnowledgeBaseArticleResponse;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
+import com.dala.crm.dto.ReportSnapshotDto;
 import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
@@ -64,6 +66,7 @@ import com.dala.crm.service.IntegrationConnectionService;
 import com.dala.crm.service.KnowledgeBaseArticleService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
+import com.dala.crm.service.ReportSnapshotService;
 import com.dala.crm.service.SlaPolicyService;
 import com.dala.crm.service.TicketService;
 import com.dala.crm.service.WorkflowDefinitionService;
@@ -98,6 +101,7 @@ import org.springframework.test.web.servlet.MockMvc;
         CampaignController.class,
         ConversationRecordController.class,
         AiInteractionController.class,
+        ReportSnapshotController.class,
         TicketController.class,
         SlaPolicyController.class
 })
@@ -151,6 +155,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private AiInteractionService aiInteractionService;
+
+    @MockBean
+    private ReportSnapshotService reportSnapshotService;
 
     @MockBean
     private TicketService ticketService;
@@ -213,6 +220,7 @@ class SecurityAndTenantWebLayerTest {
                         "crm:canned-responses:read",
                         "crm:audience-segments:read",
                         "crm:campaigns:read",
+                        "crm:reports:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -396,6 +404,18 @@ class SecurityAndTenantWebLayerTest {
                 .andExpect(jsonPath("$.leadCount").value(4))
                 .andExpect(jsonPath("$.ticketCount").value(7))
                 .andExpect(jsonPath("$.communicationCount").value(6));
+    }
+
+    @Test
+    void viewerCanReadDashboardAnalytics() throws Exception {
+        when(dashboardService.getAnalytics()).thenReturn(new com.dala.crm.dto.DashboardAnalyticsResponse(3, 5, 2, 4, 1, 6, 2, 3));
+
+        mockMvc.perform(get("/api/v1/dashboard/analytics")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publishedKnowledgeArticleCount").value(3))
+                .andExpect(jsonPath("$.reportSnapshotCount").value(3));
     }
 
     @Test
@@ -718,6 +738,41 @@ class SecurityAndTenantWebLayerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Retention outreach","channelType":"EMAIL","status":"DRAFT","audienceSegmentId":141,"subject":"We miss you","body":"Come back for a product walkthrough.","scheduledAt":"2026-03-25T08:00:00Z"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadReports() throws Exception {
+        when(reportSnapshotService.list()).thenReturn(List.of(
+                new ReportSnapshotDto(
+                        161L,
+                        "Weekly service summary",
+                        "SERVICE_OVERVIEW",
+                        "EMAIL",
+                        "WEEKLY",
+                        "GENERATED",
+                        "openTickets=6; escalatedTickets=2",
+                        Instant.parse("2026-03-20T10:00:00Z"),
+                        Instant.parse("2026-03-20T10:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/reports")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].deliveryChannel").value("EMAIL"));
+    }
+
+    @Test
+    void viewerCannotCreateReport() throws Exception {
+        mockMvc.perform(post("/api/v1/reports")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Weekly service summary","reportType":"SERVICE_OVERVIEW","deliveryChannel":"EMAIL","scheduleCadence":"WEEKLY"}
                                 """.trim()))
                 .andExpect(status().isForbidden());
     }

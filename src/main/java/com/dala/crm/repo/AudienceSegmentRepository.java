@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AudienceSegmentRepository extends JpaRepository<AudienceSegment, Long> {
 
     List<AudienceSegment> findByTenantIdOrderByCreatedAtDesc(String tenantId);
+
+    long countByTenantIdAndActiveTrue(String tenantId);
 }

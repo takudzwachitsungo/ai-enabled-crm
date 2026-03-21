@@ -30,6 +30,8 @@ public final class CrmAuthorities {
     public static final String AUDIENCE_SEGMENTS_WRITE = "crm:audience-segments:write";
     public static final String CAMPAIGNS_READ = "crm:campaigns:read";
     public static final String CAMPAIGNS_WRITE = "crm:campaigns:write";
+    public static final String REPORTS_READ = "crm:reports:read";
+    public static final String REPORTS_WRITE = "crm:reports:write";
     public static final String INTEGRATIONS_READ = "crm:integrations:read";
     public static final String INTEGRATIONS_WRITE = "crm:integrations:write";
     public static final String COMMUNICATIONS_READ = "crm:communications:read";

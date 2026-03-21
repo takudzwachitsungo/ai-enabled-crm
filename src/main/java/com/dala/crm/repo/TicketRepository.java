@@ -20,5 +20,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     long countByTenantId(String tenantId);
 
+    long countByTenantIdAndStatus(String tenantId, String status);
+
     long countByTenantIdAndStatusNotAndDueAtBefore(String tenantId, String status, Instant dueAt);
 }
