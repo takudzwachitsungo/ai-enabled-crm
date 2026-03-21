@@ -17,6 +17,7 @@ public record TicketResponse(
         Long relatedEntityId,
         Instant dueAt,
         Instant escalatedAt,
+        Instant resolvedAt,
         Instant createdAt
 ) {
 }

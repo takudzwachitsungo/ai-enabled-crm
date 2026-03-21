@@ -37,6 +37,7 @@ import com.dala.crm.dto.AiInteractionDto;
 import com.dala.crm.dto.AudienceSegmentResponse;
 import com.dala.crm.dto.AuditLogResponse;
 import com.dala.crm.dto.CampaignDeliveryRunResponse;
+import com.dala.crm.dto.CampaignMetricsResponse;
 import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
@@ -49,6 +50,7 @@ import com.dala.crm.dto.ReportSnapshotDto;
 import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketSlaReportResponse;
 import com.dala.crm.dto.WorkflowDefinitionDto;
 import com.dala.crm.dto.CannedResponseResponse;
 import com.dala.crm.exception.GlobalExceptionHandler;
@@ -434,6 +436,7 @@ class SecurityAndTenantWebLayerTest {
                         21L,
                         Instant.parse("2026-03-20T12:00:00Z"),
                         null,
+                        null,
                         Instant.parse("2026-03-20T09:00:00Z")
                 )
         ));
@@ -471,6 +474,7 @@ class SecurityAndTenantWebLayerTest {
                         "ACCOUNT",
                         21L,
                         Instant.parse("2026-03-20T12:00:00Z"),
+                        null,
                         null,
                         Instant.parse("2026-03-20T09:00:00Z")
                 ));
@@ -513,6 +517,7 @@ class SecurityAndTenantWebLayerTest {
                         21L,
                         Instant.parse("2026-03-20T12:00:00Z"),
                         null,
+                        null,
                         Instant.parse("2026-03-20T09:00:00Z")
                 ));
 
@@ -536,6 +541,18 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.escalatedCount").value(2));
+    }
+
+    @Test
+    void viewerCanReadTicketSlaReport() throws Exception {
+        when(ticketService.getSlaReport()).thenReturn(new TicketSlaReportResponse(8, 3, 2, 2, 1, 1, 2, 2));
+
+        mockMvc.perform(get("/api/v1/tickets/sla-report")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resolvedWithinSlaTickets").value(2))
+                .andExpect(jsonPath("$.breachedTickets").value(2));
     }
 
     @Test
@@ -566,6 +583,7 @@ class SecurityAndTenantWebLayerTest {
                         "High Priority Response",
                         "HIGH",
                         4,
+                        "Support Team",
                         true,
                         Instant.parse("2026-03-20T09:10:00Z")
                 )
@@ -731,6 +749,18 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].channelType").value("EMAIL"));
+    }
+
+    @Test
+    void viewerCanReadCampaignMetrics() throws Exception {
+        when(campaignService.getMetrics()).thenReturn(new CampaignMetricsResponse(3, 1, 1, 1, 24));
+
+        mockMvc.perform(get("/api/v1/campaigns/metrics")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sentCampaigns").value(1))
+                .andExpect(jsonPath("$.totalDeliveredRecipients").value(24));
     }
 
     @Test

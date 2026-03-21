@@ -36,6 +36,7 @@ public class SlaPolicyServiceImpl implements SlaPolicyService {
         slaPolicy.setName(request.name().trim());
         slaPolicy.setPriority(normalizePriority(request.priority()));
         slaPolicy.setResponseHours(request.responseHours());
+        slaPolicy.setDefaultAssignee(trimToNull(request.defaultAssignee()));
         slaPolicy.setActive(request.active());
         slaPolicy.setCreatedAt(Instant.now());
         SlaPolicy savedPolicy = slaPolicyRepository.save(slaPolicy);
@@ -71,8 +72,17 @@ public class SlaPolicyServiceImpl implements SlaPolicyService {
                 slaPolicy.getName(),
                 slaPolicy.getPriority(),
                 slaPolicy.getResponseHours(),
+                slaPolicy.getDefaultAssignee(),
                 slaPolicy.isActive(),
                 slaPolicy.getCreatedAt()
         );
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

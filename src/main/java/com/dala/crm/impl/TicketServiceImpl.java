@@ -4,6 +4,7 @@ import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketSlaReportResponse;
 import com.dala.crm.dto.TicketStatusUpdateRequest;
 import com.dala.crm.entity.Activity;
 import com.dala.crm.entity.SlaPolicy;
@@ -62,11 +63,12 @@ public class TicketServiceImpl implements TicketService {
         ticket.setDescription(trimToNull(request.description()));
         ticket.setPriority(priority);
         ticket.setStatus(OPEN_STATUS);
-        ticket.setAssignee(trimToNull(request.assignee()));
+        SlaPolicy activePolicy = activePolicy(tenantId, priority);
+        ticket.setAssignee(resolveAssignee(request.assignee(), activePolicy));
         ticket.setSourceChannel(trimToNull(request.sourceChannel()));
         ticket.setRelatedEntityType(trimToNull(request.relatedEntityType()));
         ticket.setRelatedEntityId(request.relatedEntityId());
-        ticket.setDueAt(resolveDueAt(tenantId, priority, now));
+        ticket.setDueAt(resolveDueAt(activePolicy, now));
         ticket.setCreatedAt(now);
 
         Ticket savedTicket = ticketRepository.save(ticket);
@@ -80,6 +82,7 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = currentTicket(id);
         String status = normalizeStatus(request.status());
         ticket.setStatus(status);
+        ticket.setResolvedAt(RESOLVED_STATUS.equals(status) ? Instant.now() : null);
         Ticket savedTicket = ticketRepository.save(ticket);
         auditLogService.record("UPDATE_STATUS", "TICKET", savedTicket.getId(), "Updated ticket status to " + status);
         recordChangeActivity(savedTicket, "Ticket status changed to " + status, trimToNull(request.note()));
@@ -125,6 +128,37 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional(readOnly = true)
+    public TicketSlaReportResponse getSlaReport() {
+        String tenantId = currentTenant();
+        Instant now = Instant.now();
+        List<Ticket> tickets = ticketRepository.findByTenantId(tenantId);
+
+        long resolvedWithinSlaTickets = tickets.stream()
+                .filter(ticket -> ticket.getResolvedAt() != null)
+                .filter(ticket -> ticket.getDueAt() != null)
+                .filter(ticket -> !ticket.getResolvedAt().isAfter(ticket.getDueAt()))
+                .count();
+
+        long breachedTickets = tickets.stream()
+                .filter(ticket -> ticket.getDueAt() != null)
+                .filter(ticket -> (ticket.getResolvedAt() != null && ticket.getResolvedAt().isAfter(ticket.getDueAt()))
+                        || (ticket.getResolvedAt() == null && now.isAfter(ticket.getDueAt())))
+                .count();
+
+        return new TicketSlaReportResponse(
+                ticketRepository.countByTenantId(tenantId),
+                ticketRepository.countByTenantIdAndStatus(tenantId, OPEN_STATUS),
+                ticketRepository.countByTenantIdAndStatus(tenantId, RESOLVED_STATUS),
+                ticketRepository.countByTenantIdAndStatusNotAndDueAtBefore(tenantId, RESOLVED_STATUS, now),
+                ticketRepository.countByTenantIdAndStatus(tenantId, ESCALATED_STATUS),
+                ticketRepository.countByTenantIdAndAssigneeIsNull(tenantId),
+                resolvedWithinSlaTickets,
+                breachedTickets
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TicketResponse getTicket(Long id) {
         return toResponse(currentTicket(id));
     }
@@ -155,11 +189,24 @@ public class TicketServiceImpl implements TicketService {
         activityRepository.save(activity);
     }
 
-    private Instant resolveDueAt(String tenantId, String priority, Instant createdAt) {
+    private SlaPolicy activePolicy(String tenantId, String priority) {
         return slaPolicyRepository.findFirstByTenantIdAndActiveTrueAndPriority(tenantId, priority)
+                .orElse(null);
+    }
+
+    private Instant resolveDueAt(SlaPolicy policy, Instant createdAt) {
+        return java.util.Optional.ofNullable(policy)
                 .map(SlaPolicy::getResponseHours)
                 .map(hours -> createdAt.plusSeconds(hours.longValue() * 3600L))
                 .orElse(null);
+    }
+
+    private String resolveAssignee(String requestedAssignee, SlaPolicy policy) {
+        String explicitAssignee = trimToNull(requestedAssignee);
+        if (explicitAssignee != null) {
+            return explicitAssignee;
+        }
+        return policy == null ? null : trimToNull(policy.getDefaultAssignee());
     }
 
     private String currentTenant() {
@@ -203,6 +250,7 @@ public class TicketServiceImpl implements TicketService {
                 ticket.getRelatedEntityId(),
                 ticket.getDueAt(),
                 ticket.getEscalatedAt(),
+                ticket.getResolvedAt(),
                 ticket.getCreatedAt()
         );
     }

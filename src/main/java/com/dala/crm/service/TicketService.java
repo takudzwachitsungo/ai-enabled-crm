@@ -4,6 +4,7 @@ import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketSlaReportResponse;
 import com.dala.crm.dto.TicketStatusUpdateRequest;
 import java.util.List;
 
@@ -36,6 +37,11 @@ public interface TicketService {
      * Returns tickets for the current tenant.
      */
     List<TicketResponse> getTickets();
+
+    /**
+     * Returns SLA lifecycle reporting for the current tenant.
+     */
+    TicketSlaReportResponse getSlaReport();
 
     /**
      * Returns one ticket in current tenant scope.

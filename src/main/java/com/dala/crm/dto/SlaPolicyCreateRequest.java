@@ -13,6 +13,7 @@ public record SlaPolicyCreateRequest(
         @NotBlank @Size(max = 160) String name,
         @NotBlank @Size(max = 40) String priority,
         @NotNull @Min(1) @Max(720) Integer responseHours,
+        @Size(max = 120) String defaultAssignee,
         boolean active
 ) {
 }

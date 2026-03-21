@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and multiple Phase 2 service operations slices, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, and traceable AI interactions.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and a completed Phase 2 service and marketing expansion, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, and traceable AI interactions.
 
 ## What This Repository Includes
 
@@ -13,6 +13,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Audience segments and campaign management
 - Campaign delivery execution and communication tracking
 - Scheduled report snapshots and expanded dashboard analytics
+- Ticket SLA lifecycle reporting and campaign metrics
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
@@ -47,6 +48,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Execute campaign delivery runs and log outbound campaign communications
 - Generate and list report snapshots
 - Read expanded dashboard analytics
+- Read ticket SLA lifecycle reports and tenant campaign metrics
 - Register and list integration connections
 - Create and list communication records
 - Read tenant audit history
@@ -251,6 +253,7 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/tickets`
 - `GET /api/v1/tickets`
+- `GET /api/v1/tickets/sla-report`
 - `GET /api/v1/tickets/{id}`
 - `PATCH /api/v1/tickets/{id}/status`
 - `PATCH /api/v1/tickets/{id}/assignment`
@@ -283,6 +286,7 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/campaigns`
 - `GET /api/v1/campaigns`
+- `GET /api/v1/campaigns/metrics`
 - `GET /api/v1/campaigns/{id}`
 - `POST /api/v1/campaigns/{id}/deliveries/run`
 
@@ -347,7 +351,7 @@ curl -X POST http://localhost:8080/api/v1/sla-policies \
   -u local-dev:local-dev-pass \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"High Priority Response","priority":"HIGH","responseHours":4,"active":true}'
+  -d '{"name":"High Priority Response","priority":"HIGH","responseHours":4,"defaultAssignee":"Support Team","active":true}'
 ```
 
 Create a ticket:
@@ -386,6 +390,14 @@ Run ticket escalations:
 curl -X POST http://localhost:8080/api/v1/tickets/escalations/run \
   -u local-dev:local-dev-pass \
   -H "X-Tenant-Id: tenant-demo"
+```
+
+Read ticket SLA report:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/tickets/sla-report
 ```
 
 Create a knowledge base article:
@@ -434,6 +446,14 @@ Run campaign delivery:
 curl -X POST http://localhost:8080/api/v1/campaigns/1/deliveries/run \
   -u local-dev:local-dev-pass \
   -H "X-Tenant-Id: tenant-demo"
+```
+
+Read campaign metrics:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/campaigns/metrics
 ```
 
 Read dashboard analytics:
@@ -551,11 +571,11 @@ Completed:
 - Phase 2 audience segmentation and campaign foundations
 - Phase 2 scheduled reporting and expanded analytics
 - Phase 2 campaign delivery execution and response tracking
+- Phase 2 SLA lifecycle reporting and campaign metrics visibility
 
 Planned next:
 
-- richer SLA policies and assignment rules
-- deeper audience criteria and campaign performance reporting
+- Phase 3 commerce extensions and connector groundwork
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

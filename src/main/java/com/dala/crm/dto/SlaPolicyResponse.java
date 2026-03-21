@@ -10,6 +10,7 @@ public record SlaPolicyResponse(
         String name,
         String priority,
         Integer responseHours,
+        String defaultAssignee,
         boolean active,
         Instant createdAt
 ) {

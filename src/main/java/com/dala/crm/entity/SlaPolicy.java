@@ -31,6 +31,9 @@ public class SlaPolicy {
     @Column(nullable = false)
     private Integer responseHours;
 
+    @Column(length = 120)
+    private String defaultAssignee;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -75,6 +78,14 @@ public class SlaPolicy {
 
     public void setResponseHours(Integer responseHours) {
         this.responseHours = responseHours;
+    }
+
+    public String getDefaultAssignee() {
+        return defaultAssignee;
+    }
+
+    public void setDefaultAssignee(String defaultAssignee) {
+        this.defaultAssignee = defaultAssignee;
     }
 
     public boolean isActive() {

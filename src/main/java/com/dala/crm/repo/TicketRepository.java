@@ -3,6 +3,7 @@ package com.dala.crm.repo;
 import com.dala.crm.entity.Ticket;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -22,5 +23,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     long countByTenantIdAndStatus(String tenantId, String status);
 
+    long countByTenantIdAndAssigneeIsNull(String tenantId);
+
     long countByTenantIdAndStatusNotAndDueAtBefore(String tenantId, String status, Instant dueAt);
+
+    List<Ticket> findByTenantId(String tenantId);
 }

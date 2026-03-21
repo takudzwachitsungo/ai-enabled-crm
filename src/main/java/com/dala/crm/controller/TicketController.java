@@ -4,6 +4,7 @@ import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
+import com.dala.crm.dto.TicketSlaReportResponse;
 import com.dala.crm.dto.TicketStatusUpdateRequest;
 import com.dala.crm.service.TicketService;
 import jakarta.validation.Valid;
@@ -61,6 +62,12 @@ public class TicketController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_READ)")
     public List<TicketResponse> getTickets() {
         return ticketService.getTickets();
+    }
+
+    @GetMapping("/sla-report")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_READ)")
+    public TicketSlaReportResponse getSlaReport() {
+        return ticketService.getSlaReport();
     }
 
     @GetMapping("/{id}")

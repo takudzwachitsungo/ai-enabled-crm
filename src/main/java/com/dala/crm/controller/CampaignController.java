@@ -2,6 +2,7 @@ package com.dala.crm.controller;
 
 import com.dala.crm.dto.CampaignCreateRequest;
 import com.dala.crm.dto.CampaignDeliveryRunResponse;
+import com.dala.crm.dto.CampaignMetricsResponse;
 import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.service.CampaignService;
 import jakarta.validation.Valid;
@@ -46,6 +47,12 @@ public class CampaignController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).CAMPAIGNS_READ)")
     public List<CampaignResponse> list() {
         return campaignService.list();
+    }
+
+    @GetMapping("/metrics")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).CAMPAIGNS_READ)")
+    public CampaignMetricsResponse getMetrics() {
+        return campaignService.getMetrics();
     }
 
     @GetMapping("/{id}")

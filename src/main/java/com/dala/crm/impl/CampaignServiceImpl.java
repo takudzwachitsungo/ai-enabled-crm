@@ -2,6 +2,7 @@ package com.dala.crm.impl;
 
 import com.dala.crm.dto.CampaignCreateRequest;
 import com.dala.crm.dto.CampaignDeliveryRunResponse;
+import com.dala.crm.dto.CampaignMetricsResponse;
 import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.entity.Activity;
 import com.dala.crm.entity.AudienceSegment;
@@ -116,6 +117,24 @@ public class CampaignServiceImpl implements CampaignService {
                 savedCampaign.getStatus(),
                 savedCampaign.getDeliveredCount(),
                 savedCampaign.getLastExecutedAt()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CampaignMetricsResponse getMetrics() {
+        String tenantId = currentTenant();
+        List<Campaign> campaigns = campaignRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        long deliveredRecipients = campaigns.stream()
+                .mapToLong(Campaign::getDeliveredCount)
+                .sum();
+
+        return new CampaignMetricsResponse(
+                campaigns.size(),
+                campaignRepository.countByTenantIdAndStatus(tenantId, "DRAFT"),
+                campaignRepository.countByTenantIdAndStatus(tenantId, "SCHEDULED"),
+                campaignRepository.countByTenantIdAndStatus(tenantId, "SENT"),
+                deliveredRecipients
         );
     }
 
