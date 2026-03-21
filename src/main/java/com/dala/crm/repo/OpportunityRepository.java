@@ -12,4 +12,6 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
     List<Opportunity> findByTenantId(String tenantId);
 
     long countByTenantId(String tenantId);
+
+    List<Opportunity> findByTenantIdOrderByCreatedAtDesc(String tenantId);
 }

@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and the first Phase 3 commerce foundation slice, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, and tenant-scoped commerce records.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and active Phase 3 foundations across commerce, connector events, and AI-driven sales or customer health insights, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, tenant-scoped commerce records, POS or ERP commerce event ingestion, lead scoring, account health assessment, churn risk analysis, and next-best-action recommendations with optional follow-up activity creation.
 
 ## What This Repository Includes
 
@@ -13,13 +13,16 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Audience segments and campaign management
 - Campaign delivery execution and communication tracking
 - Scheduled report snapshots and expanded dashboard analytics
+- Revenue forecast and pipeline intelligence
 - Ticket SLA lifecycle reporting and campaign metrics
 - Product catalog, quotes, and invoices foundations
+- POS and ERP connector groundwork with commerce event ingestion
+- Commerce connector sync with quote, invoice, and account lifecycle enrichment
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
 - Dashboard summary metrics
-- Traceable AI summary and draft endpoints
+- Traceable AI summary, draft, lead scoring, account health, churn risk, and recommendation endpoints
 - Audit logging for key tenant-scoped actions
 - Python AI service boundary for model-facing work
 - Docker Compose and GitHub Actions for local setup and CI
@@ -51,6 +54,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Read expanded dashboard analytics
 - Read ticket SLA lifecycle reports and tenant campaign metrics
 - Create and read products, quotes, and invoices
+- Import commerce events from POS and ERP integrations linked to CRM records
 - Register and list integration connections
 - Create and list communication records
 - Read tenant audit history
@@ -58,6 +62,10 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 ### AI
 - Create tenant-scoped summaries
 - Create tenant-scoped drafts
+- Create tenant-scoped lead scores from CRM engagement signals
+- Create tenant-scoped account health assessments from activity and communication signals
+- Create tenant-scoped churn risk insights from activity, communication, and commerce signals
+- Generate next-best-action recommendations and optionally convert them into follow-up activities
 - Persist AI interaction traces for later review
 
 ### Security
@@ -301,6 +309,7 @@ curl -u local-view:local-view-pass \
 ### Quotes
 
 - `POST /api/v1/quotes`
+- `POST /api/v1/quotes/{id}/convert-to-invoice`
 - `GET /api/v1/quotes`
 - `GET /api/v1/quotes/{id}`
 
@@ -309,6 +318,12 @@ curl -u local-view:local-view-pass \
 - `POST /api/v1/invoices`
 - `GET /api/v1/invoices`
 - `GET /api/v1/invoices/{id}`
+
+### Commerce Events
+
+- `POST /api/v1/commerce-events`
+- `GET /api/v1/commerce-events`
+- `GET /api/v1/commerce-events/{id}`
 
 ### Workflows
 
@@ -319,6 +334,7 @@ curl -u local-view:local-view-pass \
 
 - `GET /api/v1/dashboard/summary`
 - `GET /api/v1/dashboard/analytics`
+- `GET /api/v1/dashboard/forecast`
 
 ### Reports
 
@@ -340,6 +356,10 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/ai/summarize`
 - `POST /api/v1/ai/draft`
+- `POST /api/v1/ai/lead-score`
+- `POST /api/v1/ai/account-health`
+- `POST /api/v1/ai/churn-risk`
+- `POST /api/v1/ai/recommend`
 - `GET /api/v1/ai`
 
 ### Audit Logs
@@ -496,6 +516,14 @@ curl -X POST http://localhost:8080/api/v1/quotes \
   -d '{"accountId":21,"name":"Acme Renewal Quote","amount":12500.00,"status":"DRAFT","validUntil":"2026-04-01T00:00:00Z"}'
 ```
 
+Convert a quote to an invoice:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/quotes/181/convert-to-invoice \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
+```
+
 Create an invoice:
 
 ```bash
@@ -506,12 +534,36 @@ curl -X POST http://localhost:8080/api/v1/invoices \
   -d '{"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}'
 ```
 
+Import a commerce event from a POS or ERP integration:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/commerce-events \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"integrationConnectionId":71,"eventType":"SALE_COMPLETED","sourceReference":"POS-1001","relatedEntityType":"ACCOUNT","relatedEntityId":21,"amount":12500.00,"payload":"items=1"}'
+```
+
+Connector sync behaviors currently supported:
+
+- `QUOTE_ACCEPTED` linked to `QUOTE` marks the quote as `APPROVED`
+- `PAYMENT_RECEIVED` linked to `INVOICE` marks the invoice as `PAID`
+- `SALE_COMPLETED` linked to `ACCOUNT` records an inbound commerce communication and sync activity
+
 Read dashboard analytics:
 
 ```bash
 curl -u local-view:local-view-pass \
   -H "X-Tenant-Id: tenant-demo" \
   http://localhost:8080/api/v1/dashboard/analytics
+```
+
+Read dashboard revenue forecast:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/dashboard/forecast
 ```
 
 Generate a report snapshot:
@@ -572,6 +624,46 @@ curl -X POST http://localhost:8080/api/v1/ai/draft \
   -d '{"name":"Follow-up email","sourceType":"LEAD","sourceId":1,"instructions":"Write a short follow-up email for a pricing walkthrough.","channel":"EMAIL","tone":"PROFESSIONAL"}'
 ```
 
+Create an AI lead score:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/lead-score \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Lead score","leadId":1}'
+```
+
+Create an AI account health assessment:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/account-health \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Account health","accountId":21}'
+```
+
+Create an AI churn risk assessment:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/churn-risk \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Account churn risk","accountId":21}'
+```
+
+Create an AI recommendation and follow-up activity:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/recommend \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}'
+```
+
 Read audit logs:
 
 ```bash
@@ -623,11 +715,16 @@ Completed:
 - Phase 2 campaign delivery execution and response tracking
 - Phase 2 SLA lifecycle reporting and campaign metrics visibility
 - Phase 3 commerce foundation with product catalog, quotes, and invoices
+- Phase 3 POS and ERP connector groundwork with commerce events linked to CRM records
+- Phase 3 lead scoring and account health model foundations
+- Phase 3 churn risk and recommendation automation foundations
+- Phase 3 forecasting and revenue intelligence foundations
+- Phase 3 quote-to-invoice lifecycle automation
+- Phase 3 commerce connector sync and lifecycle enrichment
 
 Planned next:
 
-- POS and ERP connector groundwork
-- lead scoring and churn or health model foundations
+- advanced commerce workflows and renewal automation
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

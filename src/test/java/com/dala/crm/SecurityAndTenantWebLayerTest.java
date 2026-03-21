@@ -17,6 +17,7 @@ import com.dala.crm.controller.AudienceSegmentController;
 import com.dala.crm.controller.AuditLogController;
 import com.dala.crm.controller.CannedResponseController;
 import com.dala.crm.controller.CampaignController;
+import com.dala.crm.controller.CommerceEventController;
 import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.ConversationRecordController;
 import com.dala.crm.controller.DashboardController;
@@ -42,8 +43,10 @@ import com.dala.crm.dto.AuditLogResponse;
 import com.dala.crm.dto.CampaignDeliveryRunResponse;
 import com.dala.crm.dto.CampaignMetricsResponse;
 import com.dala.crm.dto.CampaignResponse;
+import com.dala.crm.dto.CommerceEventResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
+import com.dala.crm.dto.DashboardRevenueForecastResponse;
 import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.KnowledgeBaseArticleResponse;
@@ -68,6 +71,7 @@ import com.dala.crm.service.AiInteractionService;
 import com.dala.crm.service.AudienceSegmentService;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.CampaignService;
+import com.dala.crm.service.CommerceEventService;
 import com.dala.crm.service.ContactService;
 import com.dala.crm.service.ConversationRecordService;
 import com.dala.crm.service.DashboardService;
@@ -111,6 +115,7 @@ import org.springframework.test.web.servlet.MockMvc;
         KnowledgeBaseArticleController.class,
         CannedResponseController.class,
         CampaignController.class,
+        CommerceEventController.class,
         ProductController.class,
         QuoteController.class,
         InvoiceController.class,
@@ -173,6 +178,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private CampaignService campaignService;
+
+    @MockBean
+    private CommerceEventService commerceEventService;
 
     @MockBean
     private ConversationRecordService conversationRecordService;
@@ -248,6 +256,7 @@ class SecurityAndTenantWebLayerTest {
                         "crm:products:read",
                         "crm:quotes:read",
                         "crm:invoices:read",
+                        "crm:commerce-events:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -443,6 +452,28 @@ class SecurityAndTenantWebLayerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.publishedKnowledgeArticleCount").value(3))
                 .andExpect(jsonPath("$.reportSnapshotCount").value(3));
+    }
+
+    @Test
+    void viewerCanReadDashboardRevenueForecast() throws Exception {
+        when(dashboardService.getRevenueForecast()).thenReturn(
+                new DashboardRevenueForecastResponse(
+                        new BigDecimal("25000.00"),
+                        new BigDecimal("16250.00"),
+                        new BigDecimal("12000.00"),
+                        new BigDecimal("8000.00"),
+                        new BigDecimal("5000.00"),
+                        new BigDecimal("28450.00"),
+                        Instant.parse("2026-03-21T10:45:00Z")
+                )
+        );
+
+        mockMvc.perform(get("/api/v1/dashboard/forecast")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightedPipelineAmount").value(16250.00))
+                .andExpect(jsonPath("$.projectedRevenueAmount").value(28450.00));
     }
 
     @Test
@@ -854,6 +885,37 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanConvertQuoteToInvoice() throws Exception {
+        when(quoteService.convertToInvoice(181L)).thenReturn(
+                new InvoiceResponse(
+                        192L,
+                        21L,
+                        "Acme Corp",
+                        "INV-Q181",
+                        new BigDecimal("12500.00"),
+                        "ISSUED",
+                        Instant.parse("2026-04-01T00:00:00Z"),
+                        Instant.parse("2026-03-21T11:00:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/quotes/181/convert-to-invoice")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.invoiceNumber").value("INV-Q181"))
+                .andExpect(jsonPath("$.status").value("ISSUED"));
+    }
+
+    @Test
+    void viewerCannotConvertQuoteToInvoice() throws Exception {
+        mockMvc.perform(post("/api/v1/quotes/181/convert-to-invoice")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void viewerCanReadInvoices() throws Exception {
         when(invoiceService.list()).thenReturn(List.of(
                 new InvoiceResponse(
@@ -873,6 +935,42 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].invoiceNumber").value("INV-2026-001"));
+    }
+
+    @Test
+    void viewerCanReadCommerceEvents() throws Exception {
+        when(commerceEventService.list()).thenReturn(List.of(
+                new CommerceEventResponse(
+                        201L,
+                        71L,
+                        "Retail POS",
+                        "SALE_COMPLETED",
+                        "POS-1001",
+                        "ACCOUNT",
+                        21L,
+                        new BigDecimal("12500.00"),
+                        "{\"items\":1}",
+                        Instant.parse("2026-03-21T10:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/commerce-events")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].integrationName").value("Retail POS"));
+    }
+
+    @Test
+    void viewerCannotCreateCommerceEvent() throws Exception {
+        mockMvc.perform(post("/api/v1/commerce-events")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"integrationConnectionId":71,"eventType":"SALE_COMPLETED","sourceReference":"POS-1001","relatedEntityType":"ACCOUNT","relatedEntityId":21,"amount":12500.00,"payload":"items=1"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -1024,6 +1122,166 @@ class SecurityAndTenantWebLayerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.operationType").value("DRAFT"))
                 .andExpect(jsonPath("$.modelName").value("local-mock"));
+    }
+
+    @Test
+    void adminCanCreateAiLeadScore() throws Exception {
+        when(aiInteractionService.scoreLead(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        93L,
+                        "Lead score",
+                        "LEAD_SCORE",
+                        "LEAD",
+                        1L,
+                        "Score lead Jane Doe",
+                        "Lead score 80/100 for Jane Doe.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:15:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/lead-score")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Lead score","leadId":1}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("LEAD_SCORE"))
+                .andExpect(jsonPath("$.sourceType").value("LEAD"));
+    }
+
+    @Test
+    void adminCanCreateAiAccountHealth() throws Exception {
+        when(aiInteractionService.assessAccountHealth(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        94L,
+                        "Account health",
+                        "ACCOUNT_HEALTH",
+                        "ACCOUNT",
+                        21L,
+                        "Assess account health for Acme Corp",
+                        "Account health 88/100 (HEALTHY) for Acme Corp.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:20:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/account-health")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account health","accountId":21}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("ACCOUNT_HEALTH"))
+                .andExpect(jsonPath("$.sourceType").value("ACCOUNT"));
+    }
+
+    @Test
+    void viewerCannotCreateAiLeadScore() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/lead-score")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Lead score","leadId":1}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCannotCreateAiAccountHealth() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/account-health")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account health","accountId":21}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanCreateAiChurnRisk() throws Exception {
+        when(aiInteractionService.assessChurnRisk(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        95L,
+                        "Account churn risk",
+                        "CHURN_RISK",
+                        "ACCOUNT",
+                        21L,
+                        "Assess churn risk for account Acme Corp",
+                        "Account churn risk 72/100 (HIGH) for Acme Corp.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:25:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/churn-risk")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account churn risk","accountId":21}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("CHURN_RISK"))
+                .andExpect(jsonPath("$.sourceType").value("ACCOUNT"));
+    }
+
+    @Test
+    void adminCanCreateAiRecommendation() throws Exception {
+        when(aiInteractionService.recommendNextAction(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        96L,
+                        "Next best action",
+                        "RECOMMENDATION",
+                        "LEAD",
+                        1L,
+                        "Objective: Increase conversion",
+                        "Recommended next action: schedule a qualification call.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:30:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/recommend")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("RECOMMENDATION"))
+                .andExpect(jsonPath("$.sourceType").value("LEAD"));
+    }
+
+    @Test
+    void viewerCannotCreateAiChurnRisk() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/churn-risk")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account churn risk","accountId":21}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCannotCreateAiRecommendation() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/recommend")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test

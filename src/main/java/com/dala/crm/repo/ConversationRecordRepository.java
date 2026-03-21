@@ -11,5 +11,7 @@ public interface ConversationRecordRepository extends JpaRepository<Conversation
 
     List<ConversationRecord> findByTenantIdOrderByCreatedAtDesc(String tenantId);
 
+    long countByTenantIdAndRelatedEntityTypeAndRelatedEntityId(String tenantId, String relatedEntityType, Long relatedEntityId);
+
     long countByTenantId(String tenantId);
 }
