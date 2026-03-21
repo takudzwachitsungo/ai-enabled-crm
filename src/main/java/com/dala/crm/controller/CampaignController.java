@@ -1,6 +1,7 @@
 package com.dala.crm.controller;
 
 import com.dala.crm.dto.CampaignCreateRequest;
+import com.dala.crm.dto.CampaignDeliveryRunResponse;
 import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.service.CampaignService;
 import jakarta.validation.Valid;
@@ -33,6 +34,12 @@ public class CampaignController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).CAMPAIGNS_WRITE)")
     public CampaignResponse create(@Valid @RequestBody CampaignCreateRequest request) {
         return campaignService.create(request);
+    }
+
+    @PostMapping("/{id}/deliveries/run")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).CAMPAIGNS_WRITE)")
+    public CampaignDeliveryRunResponse runDelivery(@PathVariable Long id) {
+        return campaignService.runDelivery(id);
     }
 
     @GetMapping

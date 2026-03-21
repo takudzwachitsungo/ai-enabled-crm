@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and multiple Phase 2 service operations slices, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules, knowledge content management, marketing segmentation, scheduled reporting, richer analytics, dashboard metrics, and traceable AI interactions.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and multiple Phase 2 service operations slices, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, and traceable AI interactions.
 
 ## What This Repository Includes
 
@@ -11,6 +11,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Service tickets and SLA policy management
 - Knowledge base articles and canned response templates
 - Audience segments and campaign management
+- Campaign delivery execution and communication tracking
 - Scheduled report snapshots and expanded dashboard analytics
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
@@ -43,6 +44,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Create and list canned responses
 - Create and list audience segments
 - Create and list campaigns
+- Execute campaign delivery runs and log outbound campaign communications
 - Generate and list report snapshots
 - Read expanded dashboard analytics
 - Register and list integration connections
@@ -282,6 +284,7 @@ curl -u local-view:local-view-pass \
 - `POST /api/v1/campaigns`
 - `GET /api/v1/campaigns`
 - `GET /api/v1/campaigns/{id}`
+- `POST /api/v1/campaigns/{id}/deliveries/run`
 
 ### Workflows
 
@@ -425,6 +428,14 @@ curl -X POST http://localhost:8080/api/v1/campaigns \
   -d '{"name":"Retention outreach","channelType":"EMAIL","status":"DRAFT","audienceSegmentId":1,"subject":"We miss you","body":"Come back for a product walkthrough.","scheduledAt":"2026-03-25T08:00:00Z"}'
 ```
 
+Run campaign delivery:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/campaigns/1/deliveries/run \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
+```
+
 Read dashboard analytics:
 
 ```bash
@@ -539,11 +550,12 @@ Completed:
 - Phase 2 knowledge base and canned response foundations
 - Phase 2 audience segmentation and campaign foundations
 - Phase 2 scheduled reporting and expanded analytics
+- Phase 2 campaign delivery execution and response tracking
 
 Planned next:
 
 - richer SLA policies and assignment rules
-- campaign delivery execution and response tracking
+- deeper audience criteria and campaign performance reporting
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

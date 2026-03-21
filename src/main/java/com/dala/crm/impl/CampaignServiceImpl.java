@@ -1,15 +1,18 @@
 package com.dala.crm.impl;
 
 import com.dala.crm.dto.CampaignCreateRequest;
+import com.dala.crm.dto.CampaignDeliveryRunResponse;
 import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.entity.Activity;
 import com.dala.crm.entity.AudienceSegment;
 import com.dala.crm.entity.Campaign;
+import com.dala.crm.entity.ConversationRecord;
 import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.exception.CampaignNotFoundException;
 import com.dala.crm.repo.ActivityRepository;
 import com.dala.crm.repo.AudienceSegmentRepository;
 import com.dala.crm.repo.CampaignRepository;
+import com.dala.crm.repo.ConversationRecordRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.CampaignService;
@@ -28,17 +31,20 @@ public class CampaignServiceImpl implements CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final AudienceSegmentRepository audienceSegmentRepository;
+    private final ConversationRecordRepository conversationRecordRepository;
     private final ActivityRepository activityRepository;
     private final AuditLogService auditLogService;
 
     public CampaignServiceImpl(
             CampaignRepository campaignRepository,
             AudienceSegmentRepository audienceSegmentRepository,
+            ConversationRecordRepository conversationRecordRepository,
             ActivityRepository activityRepository,
             AuditLogService auditLogService
     ) {
         this.campaignRepository = campaignRepository;
         this.audienceSegmentRepository = audienceSegmentRepository;
+        this.conversationRecordRepository = conversationRecordRepository;
         this.activityRepository = activityRepository;
         this.auditLogService = auditLogService;
     }
@@ -58,6 +64,7 @@ public class CampaignServiceImpl implements CampaignService {
         campaign.setSubject(request.subject().trim());
         campaign.setBody(request.body().trim());
         campaign.setScheduledAt(request.scheduledAt());
+        campaign.setDeliveredCount(0);
         campaign.setCreatedAt(now);
 
         Campaign savedCampaign = campaignRepository.save(campaign);
@@ -69,6 +76,47 @@ public class CampaignServiceImpl implements CampaignService {
         );
         recordTimelineActivity(savedCampaign, segment.getName(), now);
         return toResponse(savedCampaign, segment);
+    }
+
+    @Override
+    public CampaignDeliveryRunResponse runDelivery(Long id) {
+        Campaign campaign = currentCampaign(id);
+        AudienceSegment segment = currentSegment(campaign.getTenantId(), campaign.getAudienceSegmentId());
+        Instant now = Instant.now();
+        int deliveredCount = segment.getEstimatedSize() == null ? 0 : Math.max(segment.getEstimatedSize(), 0);
+
+        campaign.setStatus("SENT");
+        campaign.setDeliveredCount(deliveredCount);
+        campaign.setLastExecutedAt(now);
+        Campaign savedCampaign = campaignRepository.save(campaign);
+
+        ConversationRecord conversationRecord = new ConversationRecord();
+        conversationRecord.setTenantId(savedCampaign.getTenantId());
+        conversationRecord.setName(savedCampaign.getName() + " delivery");
+        conversationRecord.setChannelType(savedCampaign.getChannelType());
+        conversationRecord.setDirection("OUTBOUND");
+        conversationRecord.setParticipant(segment.getName() + " audience");
+        conversationRecord.setSubject(savedCampaign.getSubject());
+        conversationRecord.setMessageBody(savedCampaign.getBody());
+        conversationRecord.setRelatedEntityType("CAMPAIGN");
+        conversationRecord.setRelatedEntityId(savedCampaign.getId());
+        conversationRecord.setCreatedAt(now);
+        conversationRecordRepository.save(conversationRecord);
+
+        auditLogService.record(
+                "DELIVER",
+                "CAMPAIGN",
+                savedCampaign.getId(),
+                "Executed campaign " + savedCampaign.getName() + " for " + deliveredCount + " estimated recipients"
+        );
+        recordExecutionActivity(savedCampaign, segment.getName(), deliveredCount, now);
+        return new CampaignDeliveryRunResponse(
+                savedCampaign.getId(),
+                savedCampaign.getName(),
+                savedCampaign.getStatus(),
+                savedCampaign.getDeliveredCount(),
+                savedCampaign.getLastExecutedAt()
+        );
     }
 
     @Override
@@ -96,6 +144,18 @@ public class CampaignServiceImpl implements CampaignService {
         activity.setRelatedEntityType("CAMPAIGN");
         activity.setRelatedEntityId(campaign.getId());
         activity.setDetails("Audience segment: " + segmentName + ", channel: " + campaign.getChannelType());
+        activity.setCreatedAt(createdAt);
+        activityRepository.save(activity);
+    }
+
+    private void recordExecutionActivity(Campaign campaign, String segmentName, int deliveredCount, Instant createdAt) {
+        Activity activity = new Activity();
+        activity.setTenantId(campaign.getTenantId());
+        activity.setType("CAMPAIGN");
+        activity.setSubject("Campaign delivered: " + campaign.getName());
+        activity.setRelatedEntityType("CAMPAIGN");
+        activity.setRelatedEntityId(campaign.getId());
+        activity.setDetails("Audience segment: " + segmentName + ", delivered count: " + deliveredCount);
         activity.setCreatedAt(createdAt);
         activityRepository.save(activity);
     }
@@ -133,6 +193,8 @@ public class CampaignServiceImpl implements CampaignService {
                 campaign.getSubject(),
                 campaign.getBody(),
                 campaign.getScheduledAt(),
+                campaign.getDeliveredCount(),
+                campaign.getLastExecutedAt(),
                 campaign.getCreatedAt()
         );
     }

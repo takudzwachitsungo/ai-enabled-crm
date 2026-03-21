@@ -1,6 +1,7 @@
 package com.dala.crm.service;
 
 import com.dala.crm.dto.CampaignCreateRequest;
+import com.dala.crm.dto.CampaignDeliveryRunResponse;
 import com.dala.crm.dto.CampaignResponse;
 import java.util.List;
 
@@ -10,6 +11,8 @@ import java.util.List;
 public interface CampaignService {
 
     CampaignResponse create(CampaignCreateRequest request);
+
+    CampaignDeliveryRunResponse runDelivery(Long id);
 
     List<CampaignResponse> list();
 

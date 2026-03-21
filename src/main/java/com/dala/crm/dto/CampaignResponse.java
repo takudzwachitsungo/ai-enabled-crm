@@ -15,6 +15,8 @@ public record CampaignResponse(
         String subject,
         String body,
         Instant scheduledAt,
+        int deliveredCount,
+        Instant lastExecutedAt,
         Instant createdAt
 ) {
 }

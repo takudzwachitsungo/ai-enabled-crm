@@ -44,6 +44,12 @@ public class Campaign {
     private Instant scheduledAt;
 
     @Column(nullable = false)
+    private int deliveredCount;
+
+    @Column
+    private Instant lastExecutedAt;
+
+    @Column(nullable = false)
     private Instant createdAt;
 
     public Long getId() {
@@ -116,6 +122,22 @@ public class Campaign {
 
     public void setScheduledAt(Instant scheduledAt) {
         this.scheduledAt = scheduledAt;
+    }
+
+    public int getDeliveredCount() {
+        return deliveredCount;
+    }
+
+    public void setDeliveredCount(int deliveredCount) {
+        this.deliveredCount = deliveredCount;
+    }
+
+    public Instant getLastExecutedAt() {
+        return lastExecutedAt;
+    }
+
+    public void setLastExecutedAt(Instant lastExecutedAt) {
+        this.lastExecutedAt = lastExecutedAt;
     }
 
     public Instant getCreatedAt() {

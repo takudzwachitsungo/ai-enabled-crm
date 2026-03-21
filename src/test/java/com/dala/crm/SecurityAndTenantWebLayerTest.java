@@ -36,6 +36,7 @@ import com.dala.crm.dto.ActivityResponse;
 import com.dala.crm.dto.AiInteractionDto;
 import com.dala.crm.dto.AudienceSegmentResponse;
 import com.dala.crm.dto.AuditLogResponse;
+import com.dala.crm.dto.CampaignDeliveryRunResponse;
 import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
@@ -719,6 +720,8 @@ class SecurityAndTenantWebLayerTest {
                         "We miss you",
                         "Come back for a product walkthrough.",
                         Instant.parse("2026-03-25T08:00:00Z"),
+                        0,
+                        null,
                         Instant.parse("2026-03-20T09:45:00Z")
                 )
         ));
@@ -728,6 +731,34 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].channelType").value("EMAIL"));
+    }
+
+    @Test
+    void adminCanRunCampaignDelivery() throws Exception {
+        when(campaignService.runDelivery(151L)).thenReturn(
+                new CampaignDeliveryRunResponse(
+                        151L,
+                        "Retention outreach",
+                        "SENT",
+                        24,
+                        Instant.parse("2026-03-21T08:00:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/campaigns/151/deliveries/run")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SENT"))
+                .andExpect(jsonPath("$.deliveredCount").value(24));
+    }
+
+    @Test
+    void viewerCannotRunCampaignDelivery() throws Exception {
+        mockMvc.perform(post("/api/v1/campaigns/151/deliveries/run")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
