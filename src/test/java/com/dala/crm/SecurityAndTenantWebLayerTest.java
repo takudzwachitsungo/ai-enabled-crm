@@ -13,8 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dala.crm.controller.AccountController;
 import com.dala.crm.controller.ActivityController;
 import com.dala.crm.controller.AiInteractionController;
+import com.dala.crm.controller.AudienceSegmentController;
 import com.dala.crm.controller.AuditLogController;
 import com.dala.crm.controller.CannedResponseController;
+import com.dala.crm.controller.CampaignController;
 import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.ConversationRecordController;
 import com.dala.crm.controller.DashboardController;
@@ -31,7 +33,9 @@ import com.dala.crm.controller.WorkflowDefinitionController;
 import com.dala.crm.dto.AccountResponse;
 import com.dala.crm.dto.ActivityResponse;
 import com.dala.crm.dto.AiInteractionDto;
+import com.dala.crm.dto.AudienceSegmentResponse;
 import com.dala.crm.dto.AuditLogResponse;
+import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
 import com.dala.crm.dto.DashboardSummaryResponse;
@@ -50,7 +54,9 @@ import com.dala.crm.security.TenantFilter;
 import com.dala.crm.service.AccountService;
 import com.dala.crm.service.ActivityService;
 import com.dala.crm.service.AiInteractionService;
+import com.dala.crm.service.AudienceSegmentService;
 import com.dala.crm.service.AuditLogService;
+import com.dala.crm.service.CampaignService;
 import com.dala.crm.service.ContactService;
 import com.dala.crm.service.ConversationRecordService;
 import com.dala.crm.service.DashboardService;
@@ -81,6 +87,7 @@ import org.springframework.test.web.servlet.MockMvc;
         AccountController.class,
         OpportunityController.class,
         ActivityController.class,
+        AudienceSegmentController.class,
         AuditLogController.class,
         TimelineController.class,
         WorkflowDefinitionController.class,
@@ -88,6 +95,7 @@ import org.springframework.test.web.servlet.MockMvc;
         IntegrationConnectionController.class,
         KnowledgeBaseArticleController.class,
         CannedResponseController.class,
+        CampaignController.class,
         ConversationRecordController.class,
         AiInteractionController.class,
         TicketController.class,
@@ -115,6 +123,9 @@ class SecurityAndTenantWebLayerTest {
     private ActivityService activityService;
 
     @MockBean
+    private AudienceSegmentService audienceSegmentService;
+
+    @MockBean
     private AuditLogService auditLogService;
 
     @MockBean
@@ -131,6 +142,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private CannedResponseService cannedResponseService;
+
+    @MockBean
+    private CampaignService campaignService;
 
     @MockBean
     private ConversationRecordService conversationRecordService;
@@ -197,6 +211,8 @@ class SecurityAndTenantWebLayerTest {
                         "crm:sla-policies:read",
                         "crm:knowledge-base:read",
                         "crm:canned-responses:read",
+                        "crm:audience-segments:read",
+                        "crm:campaigns:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -633,6 +649,75 @@ class SecurityAndTenantWebLayerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"title":"Payment issue acknowledgement","channelType":"EMAIL","category":"BILLING","body":"We are looking into your payment issue."}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadAudienceSegments() throws Exception {
+        when(audienceSegmentService.list()).thenReturn(List.of(
+                new AudienceSegmentResponse(
+                        141L,
+                        "Dormant customers",
+                        "ACCOUNT",
+                        "lastContactedBefore=2026-01-01",
+                        24,
+                        true,
+                        Instant.parse("2026-03-20T09:40:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/audience-segments")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sourceType").value("ACCOUNT"));
+    }
+
+    @Test
+    void viewerCannotCreateAudienceSegment() throws Exception {
+        mockMvc.perform(post("/api/v1/audience-segments")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Dormant customers","sourceType":"ACCOUNT","criteria":"lastContactedBefore=2026-01-01","estimatedSize":24,"active":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadCampaigns() throws Exception {
+        when(campaignService.list()).thenReturn(List.of(
+                new CampaignResponse(
+                        151L,
+                        "Retention outreach",
+                        "EMAIL",
+                        "DRAFT",
+                        141L,
+                        "Dormant customers",
+                        "We miss you",
+                        "Come back for a product walkthrough.",
+                        Instant.parse("2026-03-25T08:00:00Z"),
+                        Instant.parse("2026-03-20T09:45:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/campaigns")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].channelType").value("EMAIL"));
+    }
+
+    @Test
+    void viewerCannotCreateCampaign() throws Exception {
+        mockMvc.perform(post("/api/v1/campaigns")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Retention outreach","channelType":"EMAIL","status":"DRAFT","audienceSegmentId":141,"subject":"We miss you","body":"Come back for a product walkthrough.","scheduledAt":"2026-03-25T08:00:00Z"}
                                 """.trim()))
                 .andExpect(status().isForbidden());
     }

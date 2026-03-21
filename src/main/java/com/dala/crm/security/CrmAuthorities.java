@@ -26,6 +26,10 @@ public final class CrmAuthorities {
     public static final String KNOWLEDGE_BASE_WRITE = "crm:knowledge-base:write";
     public static final String CANNED_RESPONSES_READ = "crm:canned-responses:read";
     public static final String CANNED_RESPONSES_WRITE = "crm:canned-responses:write";
+    public static final String AUDIENCE_SEGMENTS_READ = "crm:audience-segments:read";
+    public static final String AUDIENCE_SEGMENTS_WRITE = "crm:audience-segments:write";
+    public static final String CAMPAIGNS_READ = "crm:campaigns:read";
+    public static final String CAMPAIGNS_WRITE = "crm:campaigns:write";
     public static final String INTEGRATIONS_READ = "crm:integrations:read";
     public static final String INTEGRATIONS_WRITE = "crm:integrations:write";
     public static final String COMMUNICATIONS_READ = "crm:communications:read";
