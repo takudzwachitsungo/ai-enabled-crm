@@ -32,6 +32,12 @@ public final class CrmAuthorities {
     public static final String CAMPAIGNS_WRITE = "crm:campaigns:write";
     public static final String REPORTS_READ = "crm:reports:read";
     public static final String REPORTS_WRITE = "crm:reports:write";
+    public static final String PRODUCTS_READ = "crm:products:read";
+    public static final String PRODUCTS_WRITE = "crm:products:write";
+    public static final String QUOTES_READ = "crm:quotes:read";
+    public static final String QUOTES_WRITE = "crm:quotes:write";
+    public static final String INVOICES_READ = "crm:invoices:read";
+    public static final String INVOICES_WRITE = "crm:invoices:write";
     public static final String INTEGRATIONS_READ = "crm:integrations:read";
     public static final String INTEGRATIONS_WRITE = "crm:integrations:write";
     public static final String COMMUNICATIONS_READ = "crm:communications:read";

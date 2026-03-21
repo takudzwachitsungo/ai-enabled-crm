@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP and a completed Phase 2 service and marketing expansion, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, and traceable AI interactions.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and the first Phase 3 commerce foundation slice, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, and tenant-scoped commerce records.
 
 ## What This Repository Includes
 
@@ -14,6 +14,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Campaign delivery execution and communication tracking
 - Scheduled report snapshots and expanded dashboard analytics
 - Ticket SLA lifecycle reporting and campaign metrics
+- Product catalog, quotes, and invoices foundations
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
@@ -49,6 +50,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Generate and list report snapshots
 - Read expanded dashboard analytics
 - Read ticket SLA lifecycle reports and tenant campaign metrics
+- Create and read products, quotes, and invoices
 - Register and list integration connections
 - Create and list communication records
 - Read tenant audit history
@@ -186,10 +188,10 @@ Current local users:
 
 ```text
 local-dev / local-dev-pass
-  Full read/write access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, workflows, integrations, communications, AI, dashboard, and audit logs
+  Full read/write access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, commerce, workflows, integrations, communications, AI, dashboard, and audit logs
 
 local-view / local-view-pass
-  Read access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, workflows, integrations, communications, AI history, dashboard, and identity
+  Read access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, commerce, workflows, integrations, communications, AI history, dashboard, and identity
 ```
 
 All protected requests must include:
@@ -289,6 +291,24 @@ curl -u local-view:local-view-pass \
 - `GET /api/v1/campaigns/metrics`
 - `GET /api/v1/campaigns/{id}`
 - `POST /api/v1/campaigns/{id}/deliveries/run`
+
+### Products
+
+- `POST /api/v1/products`
+- `GET /api/v1/products`
+- `GET /api/v1/products/{id}`
+
+### Quotes
+
+- `POST /api/v1/quotes`
+- `GET /api/v1/quotes`
+- `GET /api/v1/quotes/{id}`
+
+### Invoices
+
+- `POST /api/v1/invoices`
+- `GET /api/v1/invoices`
+- `GET /api/v1/invoices/{id}`
 
 ### Workflows
 
@@ -456,6 +476,36 @@ curl -u local-view:local-view-pass \
   http://localhost:8080/api/v1/campaigns/metrics
 ```
 
+Create a product:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/products \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"CRM Premium License","description":"Annual premium CRM subscription","unitPrice":499.00,"status":"ACTIVE"}'
+```
+
+Create a quote:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/quotes \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"accountId":21,"name":"Acme Renewal Quote","amount":12500.00,"status":"DRAFT","validUntil":"2026-04-01T00:00:00Z"}'
+```
+
+Create an invoice:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/invoices \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}'
+```
+
 Read dashboard analytics:
 
 ```bash
@@ -572,10 +622,12 @@ Completed:
 - Phase 2 scheduled reporting and expanded analytics
 - Phase 2 campaign delivery execution and response tracking
 - Phase 2 SLA lifecycle reporting and campaign metrics visibility
+- Phase 3 commerce foundation with product catalog, quotes, and invoices
 
 Planned next:
 
-- Phase 3 commerce extensions and connector groundwork
+- POS and ERP connector groundwork
+- lead scoring and churn or health model foundations
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

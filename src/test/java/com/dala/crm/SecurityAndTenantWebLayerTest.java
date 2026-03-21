@@ -26,11 +26,14 @@ import com.dala.crm.controller.IntegrationConnectionController;
 import com.dala.crm.controller.KnowledgeBaseArticleController;
 import com.dala.crm.controller.LeadController;
 import com.dala.crm.controller.OpportunityController;
+import com.dala.crm.controller.ProductController;
 import com.dala.crm.controller.ReportSnapshotController;
+import com.dala.crm.controller.QuoteController;
 import com.dala.crm.controller.SlaPolicyController;
 import com.dala.crm.controller.TicketController;
 import com.dala.crm.controller.TimelineController;
 import com.dala.crm.controller.WorkflowDefinitionController;
+import com.dala.crm.controller.InvoiceController;
 import com.dala.crm.dto.AccountResponse;
 import com.dala.crm.dto.ActivityResponse;
 import com.dala.crm.dto.AiInteractionDto;
@@ -46,6 +49,8 @@ import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.KnowledgeBaseArticleResponse;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
+import com.dala.crm.dto.ProductResponse;
+import com.dala.crm.dto.QuoteResponse;
 import com.dala.crm.dto.ReportSnapshotDto;
 import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
@@ -53,6 +58,7 @@ import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.TicketSlaReportResponse;
 import com.dala.crm.dto.WorkflowDefinitionDto;
 import com.dala.crm.dto.CannedResponseResponse;
+import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
@@ -69,11 +75,14 @@ import com.dala.crm.service.IntegrationConnectionService;
 import com.dala.crm.service.KnowledgeBaseArticleService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
+import com.dala.crm.service.ProductService;
+import com.dala.crm.service.QuoteService;
 import com.dala.crm.service.ReportSnapshotService;
 import com.dala.crm.service.SlaPolicyService;
 import com.dala.crm.service.TicketService;
 import com.dala.crm.service.WorkflowDefinitionService;
 import com.dala.crm.service.CannedResponseService;
+import com.dala.crm.service.InvoiceService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -102,6 +111,9 @@ import org.springframework.test.web.servlet.MockMvc;
         KnowledgeBaseArticleController.class,
         CannedResponseController.class,
         CampaignController.class,
+        ProductController.class,
+        QuoteController.class,
+        InvoiceController.class,
         ConversationRecordController.class,
         AiInteractionController.class,
         ReportSnapshotController.class,
@@ -125,6 +137,15 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private OpportunityService opportunityService;
+
+    @MockBean
+    private ProductService productService;
+
+    @MockBean
+    private QuoteService quoteService;
+
+    @MockBean
+    private InvoiceService invoiceService;
 
     @MockBean
     private ActivityService activityService;
@@ -224,6 +245,9 @@ class SecurityAndTenantWebLayerTest {
                         "crm:audience-segments:read",
                         "crm:campaigns:read",
                         "crm:reports:read",
+                        "crm:products:read",
+                        "crm:quotes:read",
+                        "crm:invoices:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -761,6 +785,106 @@ class SecurityAndTenantWebLayerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sentCampaigns").value(1))
                 .andExpect(jsonPath("$.totalDeliveredRecipients").value(24));
+    }
+
+    @Test
+    void viewerCanReadProducts() throws Exception {
+        when(productService.list()).thenReturn(List.of(
+                new ProductResponse(
+                        171L,
+                        "CRM Premium License",
+                        "Annual premium CRM subscription",
+                        new BigDecimal("499.00"),
+                        "ACTIVE",
+                        Instant.parse("2026-03-21T09:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/products")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
+    }
+
+    @Test
+    void viewerCannotCreateProduct() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"CRM Premium License","description":"Annual premium CRM subscription","unitPrice":499.00,"status":"ACTIVE"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadQuotes() throws Exception {
+        when(quoteService.list()).thenReturn(List.of(
+                new QuoteResponse(
+                        181L,
+                        21L,
+                        "Acme Corp",
+                        "Acme Renewal Quote",
+                        new BigDecimal("12500.00"),
+                        "DRAFT",
+                        Instant.parse("2026-04-01T00:00:00Z"),
+                        Instant.parse("2026-03-21T09:05:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/quotes")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accountName").value("Acme Corp"));
+    }
+
+    @Test
+    void viewerCannotCreateQuote() throws Exception {
+        mockMvc.perform(post("/api/v1/quotes")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"accountId":21,"name":"Acme Renewal Quote","amount":12500.00,"status":"DRAFT","validUntil":"2026-04-01T00:00:00Z"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadInvoices() throws Exception {
+        when(invoiceService.list()).thenReturn(List.of(
+                new InvoiceResponse(
+                        191L,
+                        21L,
+                        "Acme Corp",
+                        "INV-2026-001",
+                        new BigDecimal("12500.00"),
+                        "ISSUED",
+                        Instant.parse("2026-04-15T00:00:00Z"),
+                        Instant.parse("2026-03-21T09:10:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/invoices")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].invoiceNumber").value("INV-2026-001"));
+    }
+
+    @Test
+    void viewerCannotCreateInvoice() throws Exception {
+        mockMvc.perform(post("/api/v1/invoices")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
