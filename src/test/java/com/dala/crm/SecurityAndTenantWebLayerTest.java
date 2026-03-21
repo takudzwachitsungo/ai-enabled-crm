@@ -37,6 +37,7 @@ import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
 import com.dala.crm.dto.SlaPolicyResponse;
+import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.WorkflowDefinitionDto;
 import com.dala.crm.exception.GlobalExceptionHandler;
@@ -379,6 +380,7 @@ class SecurityAndTenantWebLayerTest {
                         "ACCOUNT",
                         21L,
                         Instant.parse("2026-03-20T12:00:00Z"),
+                        null,
                         Instant.parse("2026-03-20T09:00:00Z")
                 )
         ));
@@ -416,6 +418,7 @@ class SecurityAndTenantWebLayerTest {
                         "ACCOUNT",
                         21L,
                         Instant.parse("2026-03-20T12:00:00Z"),
+                        null,
                         Instant.parse("2026-03-20T09:00:00Z")
                 ));
 
@@ -456,6 +459,7 @@ class SecurityAndTenantWebLayerTest {
                         "ACCOUNT",
                         21L,
                         Instant.parse("2026-03-20T12:00:00Z"),
+                        null,
                         Instant.parse("2026-03-20T09:00:00Z")
                 ));
 
@@ -468,6 +472,25 @@ class SecurityAndTenantWebLayerTest {
                                 """.trim()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assignee").value("Escalation Team"));
+    }
+
+    @Test
+    void adminCanRunTicketEscalations() throws Exception {
+        when(ticketService.runEscalations()).thenReturn(new TicketEscalationRunResponse(2));
+
+        mockMvc.perform(post("/api/v1/tickets/escalations/run")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.escalatedCount").value(2));
+    }
+
+    @Test
+    void viewerCannotRunTicketEscalations() throws Exception {
+        mockMvc.perform(post("/api/v1/tickets/escalations/run")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

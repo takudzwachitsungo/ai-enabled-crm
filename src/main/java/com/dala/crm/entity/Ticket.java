@@ -49,6 +49,9 @@ public class Ticket {
     @Column
     private Instant dueAt;
 
+    @Column
+    private Instant escalatedAt;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -146,5 +149,13 @@ public class Ticket {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getEscalatedAt() {
+        return escalatedAt;
+    }
+
+    public void setEscalatedAt(Instant escalatedAt) {
+        this.escalatedAt = escalatedAt;
     }
 }

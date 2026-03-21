@@ -2,6 +2,7 @@ package com.dala.crm.controller;
 
 import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
+import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.TicketStatusUpdateRequest;
 import com.dala.crm.service.TicketService;
@@ -48,6 +49,12 @@ public class TicketController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_WRITE)")
     public TicketResponse updateAssignment(@PathVariable Long id, @Valid @RequestBody TicketAssignmentUpdateRequest request) {
         return ticketService.updateAssignment(id, request);
+    }
+
+    @PostMapping("/escalations/run")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).TICKETS_WRITE)")
+    public TicketEscalationRunResponse runEscalations() {
+        return ticketService.runEscalations();
     }
 
     @GetMapping

@@ -12,6 +12,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     List<Ticket> findByTenantIdOrderByCreatedAtDesc(String tenantId);
 
+    List<Ticket> findByTenantIdAndStatusNotAndDueAtBeforeAndEscalatedAtIsNullOrderByDueAtAsc(
+            String tenantId,
+            String status,
+            Instant dueAt
+    );
+
     long countByTenantId(String tenantId);
 
     long countByTenantIdAndStatusNotAndDueAtBefore(String tenantId, String status, Instant dueAt);

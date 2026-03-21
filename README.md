@@ -34,6 +34,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Read dashboard summary KPIs
 - Create and list service tickets
 - Update ticket status and assignment
+- Run SLA escalation for overdue tickets
 - Create and list SLA policies
 - Register and list integration connections
 - Create and list communication records
@@ -242,6 +243,7 @@ curl -u local-view:local-view-pass \
 - `GET /api/v1/tickets/{id}`
 - `PATCH /api/v1/tickets/{id}/status`
 - `PATCH /api/v1/tickets/{id}/assignment`
+- `POST /api/v1/tickets/escalations/run`
 
 ### SLA Policies
 
@@ -333,6 +335,14 @@ curl -X PATCH http://localhost:8080/api/v1/tickets/101/assignment \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: tenant-demo" \
   -d '{"assignee":"Escalation Team","note":"Escalated to specialist queue."}'
+```
+
+Run ticket escalations:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets/escalations/run \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
 ```
 
 Read dashboard summary:
@@ -427,12 +437,13 @@ Completed:
 - traceable AI summary and draft flows
 - Phase 2 ticket management and SLA due-date basics
 - Phase 2 ticket status and assignment workflows
+- Phase 2 SLA breach escalation automation
 
 Planned next:
 
-- SLA escalations and breach workflows
 - knowledge base and canned responses
 - campaigns, audience segmentation, and scheduled reporting
+- richer SLA policies and assignment rules
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

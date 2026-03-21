@@ -2,6 +2,7 @@ package com.dala.crm.impl;
 
 import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
+import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.TicketStatusUpdateRequest;
 import com.dala.crm.entity.Activity;
@@ -29,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class TicketServiceImpl implements TicketService {
 
     private static final String OPEN_STATUS = "OPEN";
+    private static final String RESOLVED_STATUS = "RESOLVED";
+    private static final String ESCALATED_STATUS = "ESCALATED";
 
     private final TicketRepository ticketRepository;
     private final SlaPolicyRepository slaPolicyRepository;
@@ -92,6 +95,24 @@ public class TicketServiceImpl implements TicketService {
         auditLogService.record("ASSIGN", "TICKET", savedTicket.getId(), "Assigned ticket to " + assignee);
         recordChangeActivity(savedTicket, "Ticket assigned to " + assignee, trimToNull(request.note()));
         return toResponse(savedTicket);
+    }
+
+    @Override
+    public TicketEscalationRunResponse runEscalations() {
+        String tenantId = currentTenant();
+        Instant now = Instant.now();
+        List<Ticket> overdueTickets = ticketRepository
+                .findByTenantIdAndStatusNotAndDueAtBeforeAndEscalatedAtIsNullOrderByDueAtAsc(tenantId, RESOLVED_STATUS, now);
+
+        for (Ticket ticket : overdueTickets) {
+            ticket.setStatus(ESCALATED_STATUS);
+            ticket.setEscalatedAt(now);
+            ticketRepository.save(ticket);
+            auditLogService.record("ESCALATE", "TICKET", ticket.getId(), "Escalated overdue ticket " + ticket.getTitle());
+            recordChangeActivity(ticket, "Ticket escalated after SLA breach", "Ticket breached its due time at " + ticket.getDueAt());
+        }
+
+        return new TicketEscalationRunResponse(overdueTickets.size());
     }
 
     @Override
@@ -181,6 +202,7 @@ public class TicketServiceImpl implements TicketService {
                 ticket.getRelatedEntityType(),
                 ticket.getRelatedEntityId(),
                 ticket.getDueAt(),
+                ticket.getEscalatedAt(),
                 ticket.getCreatedAt()
         );
     }

@@ -2,6 +2,7 @@ package com.dala.crm.service;
 
 import com.dala.crm.dto.TicketAssignmentUpdateRequest;
 import com.dala.crm.dto.TicketCreateRequest;
+import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.TicketStatusUpdateRequest;
 import java.util.List;
@@ -25,6 +26,11 @@ public interface TicketService {
      * Updates the assignee of a ticket in the current tenant.
      */
     TicketResponse updateAssignment(Long id, TicketAssignmentUpdateRequest request);
+
+    /**
+     * Escalates overdue tickets that have not already been escalated.
+     */
+    TicketEscalationRunResponse runEscalations();
 
     /**
      * Returns tickets for the current tenant.
