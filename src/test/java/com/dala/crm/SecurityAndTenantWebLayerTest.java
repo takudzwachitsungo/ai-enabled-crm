@@ -885,6 +885,37 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanConvertQuoteToInvoice() throws Exception {
+        when(quoteService.convertToInvoice(181L)).thenReturn(
+                new InvoiceResponse(
+                        192L,
+                        21L,
+                        "Acme Corp",
+                        "INV-Q181",
+                        new BigDecimal("12500.00"),
+                        "ISSUED",
+                        Instant.parse("2026-04-01T00:00:00Z"),
+                        Instant.parse("2026-03-21T11:00:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/quotes/181/convert-to-invoice")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.invoiceNumber").value("INV-Q181"))
+                .andExpect(jsonPath("$.status").value("ISSUED"));
+    }
+
+    @Test
+    void viewerCannotConvertQuoteToInvoice() throws Exception {
+        mockMvc.perform(post("/api/v1/quotes/181/convert-to-invoice")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void viewerCanReadInvoices() throws Exception {
         when(invoiceService.list()).thenReturn(List.of(
                 new InvoiceResponse(

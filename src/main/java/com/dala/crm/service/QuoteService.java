@@ -1,6 +1,7 @@
 package com.dala.crm.service;
 
 import com.dala.crm.dto.QuoteCreateRequest;
+import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.dto.QuoteResponse;
 import java.util.List;
 
@@ -10,6 +11,8 @@ import java.util.List;
 public interface QuoteService {
 
     QuoteResponse create(QuoteCreateRequest request);
+
+    InvoiceResponse convertToInvoice(Long id);
 
     List<QuoteResponse> list();
 

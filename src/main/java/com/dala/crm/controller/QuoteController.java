@@ -1,5 +1,6 @@
 package com.dala.crm.controller;
 
+import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.dto.QuoteCreateRequest;
 import com.dala.crm.dto.QuoteResponse;
 import com.dala.crm.service.QuoteService;
@@ -33,6 +34,13 @@ public class QuoteController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).QUOTES_WRITE)")
     public QuoteResponse create(@Valid @RequestBody QuoteCreateRequest request) {
         return quoteService.create(request);
+    }
+
+    @PostMapping("/{id}/convert-to-invoice")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).QUOTES_WRITE)")
+    public InvoiceResponse convertToInvoice(@PathVariable Long id) {
+        return quoteService.convertToInvoice(id);
     }
 
     @GetMapping

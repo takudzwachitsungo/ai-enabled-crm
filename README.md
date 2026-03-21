@@ -308,6 +308,7 @@ curl -u local-view:local-view-pass \
 ### Quotes
 
 - `POST /api/v1/quotes`
+- `POST /api/v1/quotes/{id}/convert-to-invoice`
 - `GET /api/v1/quotes`
 - `GET /api/v1/quotes/{id}`
 
@@ -514,6 +515,14 @@ curl -X POST http://localhost:8080/api/v1/quotes \
   -d '{"accountId":21,"name":"Acme Renewal Quote","amount":12500.00,"status":"DRAFT","validUntil":"2026-04-01T00:00:00Z"}'
 ```
 
+Convert a quote to an invoice:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/quotes/181/convert-to-invoice \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
+```
+
 Create an invoice:
 
 ```bash
@@ -703,11 +712,12 @@ Completed:
 - Phase 3 lead scoring and account health model foundations
 - Phase 3 churn risk and recommendation automation foundations
 - Phase 3 forecasting and revenue intelligence foundations
+- Phase 3 quote-to-invoice lifecycle automation
 
 Planned next:
 
 - deeper commerce workflows and connector sync automation
-- quote-to-invoice lifecycle automation
+- commerce connector sync and lifecycle enrichment
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 
