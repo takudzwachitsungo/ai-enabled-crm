@@ -1071,6 +1071,86 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanCreateAiLeadScore() throws Exception {
+        when(aiInteractionService.scoreLead(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        93L,
+                        "Lead score",
+                        "LEAD_SCORE",
+                        "LEAD",
+                        1L,
+                        "Score lead Jane Doe",
+                        "Lead score 80/100 for Jane Doe.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:15:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/lead-score")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Lead score","leadId":1}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("LEAD_SCORE"))
+                .andExpect(jsonPath("$.sourceType").value("LEAD"));
+    }
+
+    @Test
+    void adminCanCreateAiAccountHealth() throws Exception {
+        when(aiInteractionService.assessAccountHealth(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        94L,
+                        "Account health",
+                        "ACCOUNT_HEALTH",
+                        "ACCOUNT",
+                        21L,
+                        "Assess account health for Acme Corp",
+                        "Account health 88/100 (HEALTHY) for Acme Corp.",
+                        "local-mock",
+                        Instant.parse("2026-03-21T10:20:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/account-health")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account health","accountId":21}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("ACCOUNT_HEALTH"))
+                .andExpect(jsonPath("$.sourceType").value("ACCOUNT"));
+    }
+
+    @Test
+    void viewerCannotCreateAiLeadScore() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/lead-score")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Lead score","leadId":1}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCannotCreateAiAccountHealth() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/account-health")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Account health","accountId":21}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void viewerCanReadAiInteractionHistory() throws Exception {
         when(aiInteractionService.list()).thenReturn(List.of(
                 new AiInteractionDto(

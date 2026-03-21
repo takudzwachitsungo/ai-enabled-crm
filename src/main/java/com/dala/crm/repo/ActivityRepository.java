@@ -11,5 +11,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findByTenantIdOrderByCreatedAtDesc(String tenantId);
 
+    long countByTenantIdAndRelatedEntityTypeAndRelatedEntityId(String tenantId, String relatedEntityType, Long relatedEntityId);
+
     long countByTenantId(String tenantId);
 }

@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and early Phase 3 commerce and connector foundations, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, tenant-scoped commerce records, and POS or ERP commerce event ingestion.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and active Phase 3 foundations across commerce, connector events, and AI-driven sales or customer health insights, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, tenant-scoped commerce records, POS or ERP commerce event ingestion, lead scoring, and account health assessment.
 
 ## What This Repository Includes
 
@@ -20,7 +20,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
 - Dashboard summary metrics
-- Traceable AI summary and draft endpoints
+- Traceable AI summary, draft, lead scoring, and account health endpoints
 - Audit logging for key tenant-scoped actions
 - Python AI service boundary for model-facing work
 - Docker Compose and GitHub Actions for local setup and CI
@@ -60,6 +60,8 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 ### AI
 - Create tenant-scoped summaries
 - Create tenant-scoped drafts
+- Create tenant-scoped lead scores from CRM engagement signals
+- Create tenant-scoped account health assessments from activity and communication signals
 - Persist AI interaction traces for later review
 
 ### Security
@@ -348,6 +350,8 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/ai/summarize`
 - `POST /api/v1/ai/draft`
+- `POST /api/v1/ai/lead-score`
+- `POST /api/v1/ai/account-health`
 - `GET /api/v1/ai`
 
 ### Audit Logs
@@ -590,6 +594,26 @@ curl -X POST http://localhost:8080/api/v1/ai/draft \
   -d '{"name":"Follow-up email","sourceType":"LEAD","sourceId":1,"instructions":"Write a short follow-up email for a pricing walkthrough.","channel":"EMAIL","tone":"PROFESSIONAL"}'
 ```
 
+Create an AI lead score:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/lead-score \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Lead score","leadId":1}'
+```
+
+Create an AI account health assessment:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/account-health \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Account health","accountId":21}'
+```
+
 Read audit logs:
 
 ```bash
@@ -642,11 +666,12 @@ Completed:
 - Phase 2 SLA lifecycle reporting and campaign metrics visibility
 - Phase 3 commerce foundation with product catalog, quotes, and invoices
 - Phase 3 POS and ERP connector groundwork with commerce events linked to CRM records
+- Phase 3 lead scoring and account health model foundations
 
 Planned next:
 
-- lead scoring and churn or health model foundations
 - deeper commerce workflows and connector sync automation
+- churn risk and recommendation model foundations
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 
