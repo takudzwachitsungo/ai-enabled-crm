@@ -6,6 +6,7 @@ import com.dala.crm.service.LeadService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,16 +30,19 @@ public class LeadController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).LEADS_WRITE)")
     public LeadResponse createLead(@Valid @RequestBody LeadCreateRequest request) {
         return leadService.createLead(request);
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).LEADS_READ)")
     public List<LeadResponse> getLeads() {
         return leadService.getLeads();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).LEADS_READ)")
     public LeadResponse getLead(@PathVariable Long id) {
         return leadService.getLead(id);
     }

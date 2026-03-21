@@ -1,149 +1,351 @@
-# AI-First CRM (Monolith)
+# AI-Enabled CRM Platform
 
-An AI-native, multi-tenant CRM platform designed for SMEs. The system is built as a **monolith** with clear domain boundaries and a single shared package convention.
+AI-Enabled CRM is a multi-tenant customer relationship management platform designed for SMEs. The backend is built with Spring Boot and a dedicated Python AI service, with tenant isolation, RBAC, and workflow-driven operations treated as first-class concerns from the beginning.
 
-## Project Goals
-- Unified customer data across sales, support, and communication.
-- AI features embedded in workflows (summaries, drafting, insights).
-- Strong tenant isolation, RBAC, auditability, and extensibility.
-- API-first and integration-friendly design from day one.
+## Overview
 
-## Phase-1 MVP Scope
-- Multi-tenant authentication and authorization.
-- Core CRM entities: Leads, Contacts, Accounts, Opportunities.
-- Activities: Tasks, Notes, Meetings, Timeline feed.
-- Basic channels: Email + WhatsApp integration foundations.
-- AI assistance: summarization + message drafting.
-- Workflow engine: trigger -> condition -> action (basic).
-- Dashboards + audit logs.
+This repository currently focuses on the backend foundation and the first CRM workflow slices needed for an internal MVP:
 
-## Recommended Technology Baseline
-- Backend: Java 21 + Spring Boot
-- Database: PostgreSQL
-- Cache/queues: Redis
-- Async jobs: Spring scheduler + queue workers
-- Object storage: S3-compatible
-- Frontend (later phase): React + TypeScript
+- Tenant-aware authentication and authorization baseline
+- Core CRM records for leads, contacts, accounts, and opportunities
+- Activities and timeline feed for operational visibility
+- AI service boundary for summarization and drafting
+- Documentation, CI, and local development infrastructure
+
+## Current Capabilities
+
+### CRM Core
+- Leads: create, list, and fetch by ID
+- Contacts: create, list, and fetch by ID
+- Accounts: create, list, and fetch by ID
+- Opportunities: create, list, and fetch by ID
+- Activities: create, list, and fetch by ID
+- Timeline: tenant-scoped activity feed ordered newest first
+
+### Security
+- HTTP Basic authentication for local development
+- Tenant header enforcement on protected endpoints
+- Role/authority-based endpoint access
+- Identity introspection endpoint for local validation
+
+### AI Service
+- `POST /v1/summarize`
+- `POST /v1/draft`
+- Provider abstraction for `mock` and `openai`
+
+## Architecture
+
+The application is being developed as a modular backend platform with strict package boundaries under `com.dala.crm`.
+
+### Design Principles
+- Tenant-first data access
+- Security by default
+- API-first domain delivery
+- Clear service and controller separation
+- AI integration isolated from transactional CRM logic
+
+### Backend Components
+- Spring Boot API for CRM domain operations
+- PostgreSQL for persistence
+- Python FastAPI service for model-facing AI operations
+- Docker Compose for local infrastructure
+
+### Package Layout
+
+```text
+com.dala.crm
+├── config
+├── controller
+├── dto
+├── entity
+├── exception
+├── impl
+├── repo
+├── security
+└── service
+```
+
+Additional architecture and planning context is available in:
+
+- [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
+- [docs/architecture/module-packaging-standard.md](docs/architecture/module-packaging-standard.md)
+- [docs/planning/project-phases.md](docs/planning/project-phases.md)
+- [docs/planning/timeline-guide.md](docs/planning/timeline-guide.md)
+- [docs/standards/documentation-standard.md](docs/standards/documentation-standard.md)
+
+## Technology Stack
+
+- Java 21
+- Spring Boot 3
+- Spring Security
+- Spring Data JPA
+- PostgreSQL
+- Python 3.12
+- FastAPI
+- OpenAI Python SDK
+- Docker Compose
+- GitHub Actions
 
 ## Repository Structure
+
 ```text
 .
-├── pom.xml
-├── README.md
 ├── ai-service
 │   ├── app
 │   ├── requirements.txt
 │   └── Dockerfile
-├── docker-compose.yml
+├── docs
+├── scripts
 ├── src
 │   ├── main
-│   │   ├── java/com/dala/crm
-│   │   │   ├── config
-│   │   │   ├── controller
-│   │   │   ├── dto
-│   │   │   ├── entity
-│   │   │   ├── exception
-│   │   │   ├── impl
-│   │   │   ├── repo
-│   │   │   ├── security
-│   │   │   └── service
-│   │   └── resources
-│   │       └── application.yml
 │   └── test
-└── docs
-    ├── architecture
-    │   ├── system-architecture.md
-    │   └── module-packaging-standard.md
-    ├── planning
-    │   ├── project-phases.md
-    │   └── timeline-guide.md
-    └── standards
-        └── documentation-standard.md
+├── docker-compose.yml
+├── pom.xml
+└── README.md
 ```
 
-## Package Convention
-All backend classes must be packaged under `com.dala.crm` using this layout:
-- `entity` - JPA/domain entities
-- `dto` - request/response transport objects
-- `repo` - repository interfaces and custom queries
-- `config` - application and feature configuration
-- `security` - auth, tenant context, and authorization policies
-- `service` - service contracts/interfaces
-- `impl` - service implementations
-- `controller` - REST endpoints
-- `exception` - domain/application exception handling
+## Getting Started
 
-Detailed rules: [docs/architecture/module-packaging-standard.md](docs/architecture/module-packaging-standard.md)
+### Prerequisites
 
-## Current Scope
-- Flat package structure under `com.dala.crm`.
-- Initial lead flow implemented as reference (`LeadController`, `LeadService`, `LeadServiceImpl`).
-- Additional domain placeholders exist in the same package convention.
-
-## Documentation Index
-- System architecture: [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
-- Packaging standard: [docs/architecture/module-packaging-standard.md](docs/architecture/module-packaging-standard.md)
-- Project phases: [docs/planning/project-phases.md](docs/planning/project-phases.md)
-- Timeline guide: [docs/planning/timeline-guide.md](docs/planning/timeline-guide.md)
-- Documentation style standard: [docs/standards/documentation-standard.md](docs/standards/documentation-standard.md)
-
-## Next Build Step
-Code scaffold is now created. Next, we should implement Phase-1 domain stories starting with:
-1. Identity + RBAC foundations.
-2. Lead/Contact/Account workflows.
-3. Email and WhatsApp adapters.
-4. Workflow rules engine (basic trigger-condition-action).
-
-## Local Run (Backend)
-Prerequisites:
 - Java 21
 - Maven 3.9+
-- Docker (recommended) or PostgreSQL 14+
+- Docker Desktop or Docker Engine
 
-Default DB config is in `src/main/resources/application.yml` and can be overridden with env vars.
+### Start Infrastructure
 
-### Start local infrastructure with Docker
 ```bash
-docker compose up -d
+docker compose up -d postgres
 docker compose ps
 ```
 
-Optional:
+To run the AI service as well:
+
 ```bash
-cp .env.example .env
+docker compose up -d
 ```
 
-Run:
+### Run the Backend
+
 ```bash
 mvn spring-boot:run
 ```
 
-Smoke test:
-```bash
-./scripts/smoke-test.sh
+The backend starts on `http://localhost:8080`.
+
+## Configuration
+
+### Backend
+
+Default backend configuration is defined in `src/main/resources/application.yml`.
+
+Supported database environment variables:
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+
+### AI Service
+
+AI service configuration is controlled through environment variables:
+
+- `AI_PROVIDER`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+
+The included `mock` provider is the default for local development.
+
+## Local Authentication Model
+
+The current local development setup uses in-memory users:
+
+```text
+local-dev / local-dev-pass
+  Authorities: leads, contacts, accounts, opportunities, activities read/write + identity read
+
+local-view / local-view-pass
+  Authorities: leads, contacts, accounts, opportunities, activities read + identity read
 ```
 
-Health endpoint:
+All protected backend requests must include:
+
+- Basic authentication credentials
+- `X-Tenant-Id` header
+
+Example:
+
 ```bash
-curl http://localhost:8080/api/health
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/identity/me
 ```
 
-Lead API examples (tenant header required):
+## API Reference
+
+### Public Endpoint
+
+- `GET /api/health`
+
+### Identity
+
+- `GET /api/v1/identity/me`
+
+### Leads
+
+- `POST /api/v1/leads`
+- `GET /api/v1/leads`
+- `GET /api/v1/leads/{id}`
+
+### Contacts
+
+- `POST /api/v1/contacts`
+- `GET /api/v1/contacts`
+- `GET /api/v1/contacts/{id}`
+
+### Accounts
+
+- `POST /api/v1/accounts`
+- `GET /api/v1/accounts`
+- `GET /api/v1/accounts/{id}`
+
+### Opportunities
+
+- `POST /api/v1/opportunities`
+- `GET /api/v1/opportunities`
+- `GET /api/v1/opportunities/{id}`
+
+### Activities
+
+- `POST /api/v1/activities`
+- `GET /api/v1/activities`
+- `GET /api/v1/activities/{id}`
+
+### Timeline
+
+- `GET /api/v1/timeline`
+
+### AI Service
+
+- `GET /health`
+- `POST /v1/summarize`
+- `POST /v1/draft`
+
+## Example Requests
+
+Create a lead:
+
 ```bash
 curl -X POST http://localhost:8080/api/v1/leads \
-  -H \"Content-Type: application/json\" \
-  -H \"X-Tenant-Id: tenant-demo\" \
   -u local-dev:local-dev-pass \
-  -d '{\"fullName\":\"Jane Doe\",\"email\":\"jane@example.com\"}'
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"fullName":"Jane Doe","email":"jane@example.com"}'
 ```
 
-Stop Docker services:
+Create a contact:
+
 ```bash
-docker compose down
+curl -X POST http://localhost:8080/api/v1/contacts \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"fullName":"Jane Contact","email":"contact@example.com","companyName":"Acme"}'
 ```
 
-## AI Python Layer
-The repo includes a dedicated Python AI service in [ai-service/README.md](ai-service/README.md) for:
-- summarization (`/v1/summarize`)
-- drafting (`/v1/draft`)
-- provider abstraction (`mock` or `openai`)
+Create an account:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/accounts \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Acme Corp","industry":"Manufacturing","website":"https://acme.example.com"}'
+```
+
+Create an opportunity:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/opportunities \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Acme Renewal","accountName":"Acme Corp","amount":12500.00,"stage":"PROPOSAL"}'
+```
+
+Create an activity:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/activities \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"type":"TASK","subject":"Follow up on quote","relatedEntityType":"OPPORTUNITY","relatedEntityId":31,"details":"Call customer on Friday."}'
+```
+
+Read the timeline:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/timeline
+```
+
+## Testing
+
+### Automated Tests
+
+Run backend tests with Maven:
+
+```bash
+mvn test
+```
+
+The repository includes web-layer tests covering:
+
+- public health access
+- authentication requirements
+- tenant header enforcement
+- RBAC for viewer vs writer access
+- timeline read access
+
+### CI
+
+GitHub Actions runs backend tests through:
+
+- `.github/workflows/backend-ci.yml`
+
+### Manual Validation
+
+For manual validation, confirm the following:
+
+- `/api/health` returns `UP` without authentication
+- protected endpoints return `401` without credentials
+- protected endpoints return `400` without `X-Tenant-Id`
+- `local-view` can read CRM records and timeline
+- `local-view` cannot create leads, accounts, opportunities, or activities
+
+## Development Status
+
+Completed so far:
+
+- Phase 0 engineering baseline and hardening
+- Local RBAC and tenant enforcement foundation
+- Core CRM CRUD for leads, contacts, accounts, and opportunities
+- Activity management and timeline feed
+- Python AI service boundary
+
+Planned next:
+
+- JWT/OAuth2 integration
+- audit logging
+- workflow automation basics
+- communication adapters
+- richer AI traceability in CRM flows
+
+## Notes
+
+- The current auth implementation is intended for development and internal validation.
+- Maven is required to run the backend test suite locally.
+- The AI service is intentionally isolated so provider changes do not ripple through CRM business logic.
