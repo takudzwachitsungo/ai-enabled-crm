@@ -1,5 +1,6 @@
 package com.dala.crm.impl;
 
+import com.dala.crm.dto.CommerceStatusUpdateRequest;
 import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.dto.QuoteCreateRequest;
 import com.dala.crm.dto.QuoteResponse;
@@ -100,6 +101,17 @@ public class QuoteServiceImpl implements QuoteService {
     }
 
     @Override
+    public QuoteResponse updateStatus(Long id, CommerceStatusUpdateRequest request) {
+        Quote quote = currentQuote(id);
+        quote.setStatus(normalize(request.status()));
+        Quote savedQuote = quoteRepository.save(quote);
+        Account account = currentAccount(savedQuote.getTenantId(), savedQuote.getAccountId());
+        auditLogService.record("UPDATE_STATUS", "QUOTE", savedQuote.getId(), "Updated quote status to " + savedQuote.getStatus());
+        recordStatusActivity(savedQuote, "Quote status changed to " + savedQuote.getStatus(), trimToNull(request.note()));
+        return toResponse(savedQuote, account);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<QuoteResponse> list() {
         String tenantId = currentTenant();
@@ -140,6 +152,18 @@ public class QuoteServiceImpl implements QuoteService {
         activityRepository.save(activity);
     }
 
+    private void recordStatusActivity(Quote quote, String subject, String details) {
+        Activity activity = new Activity();
+        activity.setTenantId(quote.getTenantId());
+        activity.setType("QUOTE");
+        activity.setSubject(subject);
+        activity.setRelatedEntityType("QUOTE");
+        activity.setRelatedEntityId(quote.getId());
+        activity.setDetails(details);
+        activity.setCreatedAt(Instant.now());
+        activityRepository.save(activity);
+    }
+
     private Quote currentQuote(Long id) {
         String tenantId = currentTenant();
         return quoteRepository.findById(id)
@@ -160,6 +184,14 @@ public class QuoteServiceImpl implements QuoteService {
 
     private String normalize(String value) {
         return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private QuoteResponse toResponse(Quote quote, Account account) {

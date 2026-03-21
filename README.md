@@ -310,6 +310,7 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/quotes`
 - `POST /api/v1/quotes/{id}/convert-to-invoice`
+- `PATCH /api/v1/quotes/{id}/status`
 - `GET /api/v1/quotes`
 - `GET /api/v1/quotes/{id}`
 
@@ -317,6 +318,7 @@ curl -u local-view:local-view-pass \
 
 - `POST /api/v1/invoices`
 - `POST /api/v1/invoices/renewals/run`
+- `PATCH /api/v1/invoices/{id}/status`
 - `GET /api/v1/invoices`
 - `GET /api/v1/invoices/{id}`
 
@@ -525,6 +527,16 @@ curl -X POST http://localhost:8080/api/v1/quotes/181/convert-to-invoice \
   -H "X-Tenant-Id: tenant-demo"
 ```
 
+Cancel a quote:
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/quotes/181/status \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"status":"CANCELLED","note":"Customer paused the deal."}'
+```
+
 Create an invoice:
 
 ```bash
@@ -541,6 +553,16 @@ Run renewal automation:
 curl -X POST http://localhost:8080/api/v1/invoices/renewals/run \
   -u local-dev:local-dev-pass \
   -H "X-Tenant-Id: tenant-demo"
+```
+
+Refund an invoice:
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/invoices/191/status \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"status":"REFUNDED","note":"Customer refund approved."}'
 ```
 
 Import a commerce event from a POS or ERP integration:
@@ -731,10 +753,10 @@ Completed:
 - Phase 3 quote-to-invoice lifecycle automation
 - Phase 3 commerce connector sync and lifecycle enrichment
 - Phase 3 renewal automation foundations
+- Phase 3 refund and cancellation workflow foundations
 
 Planned next:
 
-- refund and cancellation workflow foundations
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

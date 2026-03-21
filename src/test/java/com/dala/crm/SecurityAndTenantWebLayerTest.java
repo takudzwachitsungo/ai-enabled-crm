@@ -886,6 +886,44 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanCancelQuote() throws Exception {
+        when(quoteService.updateStatus(org.mockito.ArgumentMatchers.eq(181L), org.mockito.ArgumentMatchers.any())).thenReturn(
+                new QuoteResponse(
+                        181L,
+                        21L,
+                        "Acme Corp",
+                        "Acme Renewal Quote",
+                        new BigDecimal("12500.00"),
+                        "CANCELLED",
+                        Instant.parse("2026-04-01T00:00:00Z"),
+                        Instant.parse("2026-03-21T09:05:00Z")
+                )
+        );
+
+        mockMvc.perform(patch("/api/v1/quotes/181/status")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"CANCELLED","note":"Customer paused the deal."}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+    }
+
+    @Test
+    void viewerCannotCancelQuote() throws Exception {
+        mockMvc.perform(patch("/api/v1/quotes/181/status")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"CANCELLED","note":"Customer paused the deal."}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void adminCanConvertQuoteToInvoice() throws Exception {
         when(quoteService.convertToInvoice(181L)).thenReturn(
                 new InvoiceResponse(
@@ -982,6 +1020,44 @@ class SecurityAndTenantWebLayerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanRefundInvoice() throws Exception {
+        when(invoiceService.updateStatus(org.mockito.ArgumentMatchers.eq(191L), org.mockito.ArgumentMatchers.any())).thenReturn(
+                new InvoiceResponse(
+                        191L,
+                        21L,
+                        "Acme Corp",
+                        "INV-2026-001",
+                        new BigDecimal("12500.00"),
+                        "REFUNDED",
+                        Instant.parse("2026-04-15T00:00:00Z"),
+                        Instant.parse("2026-03-21T09:10:00Z")
+                )
+        );
+
+        mockMvc.perform(patch("/api/v1/invoices/191/status")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"REFUNDED","note":"Customer refund approved."}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REFUNDED"));
+    }
+
+    @Test
+    void viewerCannotRefundInvoice() throws Exception {
+        mockMvc.perform(patch("/api/v1/invoices/191/status")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"REFUNDED","note":"Customer refund approved."}
                                 """.trim()))
                 .andExpect(status().isForbidden());
     }

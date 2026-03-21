@@ -1,5 +1,6 @@
 package com.dala.crm.service;
 
+import com.dala.crm.dto.CommerceStatusUpdateRequest;
 import com.dala.crm.dto.QuoteCreateRequest;
 import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.dto.QuoteResponse;
@@ -13,6 +14,8 @@ public interface QuoteService {
     QuoteResponse create(QuoteCreateRequest request);
 
     InvoiceResponse convertToInvoice(Long id);
+
+    QuoteResponse updateStatus(Long id, CommerceStatusUpdateRequest request);
 
     List<QuoteResponse> list();
 

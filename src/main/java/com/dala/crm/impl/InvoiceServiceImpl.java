@@ -1,5 +1,6 @@
 package com.dala.crm.impl;
 
+import com.dala.crm.dto.CommerceStatusUpdateRequest;
 import com.dala.crm.dto.InvoiceCreateRequest;
 import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.dto.RenewalAutomationRunResponse;
@@ -142,6 +143,17 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public InvoiceResponse updateStatus(Long id, CommerceStatusUpdateRequest request) {
+        Invoice invoice = currentInvoice(id);
+        invoice.setStatus(normalize(request.status()));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        Account account = currentAccount(savedInvoice.getTenantId(), savedInvoice.getAccountId());
+        auditLogService.record("UPDATE_STATUS", "INVOICE", savedInvoice.getId(), "Updated invoice status to " + savedInvoice.getStatus());
+        recordStatusActivity(savedInvoice, "Invoice status changed to " + savedInvoice.getStatus(), trimToNull(request.note()));
+        return toResponse(savedInvoice, account);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<InvoiceResponse> list() {
         String tenantId = currentTenant();
@@ -189,6 +201,18 @@ public class InvoiceServiceImpl implements InvoiceService {
         activityRepository.save(activity);
     }
 
+    private void recordStatusActivity(Invoice invoice, String subject, String details) {
+        Activity activity = new Activity();
+        activity.setTenantId(invoice.getTenantId());
+        activity.setType("INVOICE");
+        activity.setSubject(subject);
+        activity.setRelatedEntityType("INVOICE");
+        activity.setRelatedEntityId(invoice.getId());
+        activity.setDetails(details);
+        activity.setCreatedAt(Instant.now());
+        activityRepository.save(activity);
+    }
+
     private Invoice currentInvoice(Long id) {
         String tenantId = currentTenant();
         return invoiceRepository.findById(id)
@@ -209,6 +233,14 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private String normalize(String value) {
         return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private InvoiceResponse toResponse(Invoice invoice, Account account) {
