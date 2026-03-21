@@ -2,18 +2,22 @@ package com.dala.crm.impl;
 
 import com.dala.crm.dto.InvoiceCreateRequest;
 import com.dala.crm.dto.InvoiceResponse;
+import com.dala.crm.dto.RenewalAutomationRunResponse;
 import com.dala.crm.entity.Account;
 import com.dala.crm.entity.Activity;
 import com.dala.crm.entity.Invoice;
+import com.dala.crm.entity.Quote;
 import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.exception.InvoiceNotFoundException;
 import com.dala.crm.repo.AccountRepository;
 import com.dala.crm.repo.ActivityRepository;
 import com.dala.crm.repo.InvoiceRepository;
+import com.dala.crm.repo.QuoteRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.InvoiceService;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
@@ -27,17 +31,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
+    private final QuoteRepository quoteRepository;
     private final AccountRepository accountRepository;
     private final ActivityRepository activityRepository;
     private final AuditLogService auditLogService;
 
     public InvoiceServiceImpl(
             InvoiceRepository invoiceRepository,
+            QuoteRepository quoteRepository,
             AccountRepository accountRepository,
             ActivityRepository activityRepository,
             AuditLogService auditLogService
     ) {
         this.invoiceRepository = invoiceRepository;
+        this.quoteRepository = quoteRepository;
         this.accountRepository = accountRepository;
         this.activityRepository = activityRepository;
         this.auditLogService = auditLogService;
@@ -65,6 +72,76 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public RenewalAutomationRunResponse runRenewalAutomation() {
+        String tenantId = currentTenant();
+        Instant now = Instant.now();
+        Instant renewalThreshold = now.minus(30, ChronoUnit.DAYS);
+        Instant quoteThreshold = now.plus(7, ChronoUnit.DAYS);
+
+        List<Invoice> renewalCandidates = invoiceRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(invoice -> "PAID".equalsIgnoreCase(invoice.getStatus()))
+                .filter(invoice -> invoice.getCreatedAt().isBefore(renewalThreshold))
+                .toList();
+
+        List<Quote> expiringQuotes = quoteRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(quote -> quote.getValidUntil() != null)
+                .filter(quote -> !quote.getValidUntil().isAfter(quoteThreshold))
+                .filter(quote -> !List.of("CONVERTED", "EXPIRED").contains(normalize(quote.getStatus())))
+                .toList();
+
+        long generatedActivities = 0;
+
+        for (Invoice invoice : renewalCandidates) {
+            String subject = "Renewal follow-up: " + invoice.getInvoiceNumber();
+            if (!activityRepository.existsByTenantIdAndTypeAndRelatedEntityTypeAndRelatedEntityIdAndSubject(
+                    tenantId, "RENEWAL", "INVOICE", invoice.getId(), subject)) {
+                Account account = currentAccount(tenantId, invoice.getAccountId());
+                createAutomationActivity(
+                        tenantId,
+                        "INVOICE",
+                        invoice.getId(),
+                        subject,
+                        "Review renewal or upsell options for " + account.getName() + ". Invoice amount: " + invoice.getAmount(),
+                        now
+                );
+                generatedActivities++;
+            }
+        }
+
+        for (Quote quote : expiringQuotes) {
+            String subject = "Quote expiry follow-up: " + quote.getName();
+            if (!activityRepository.existsByTenantIdAndTypeAndRelatedEntityTypeAndRelatedEntityIdAndSubject(
+                    tenantId, "RENEWAL", "QUOTE", quote.getId(), subject)) {
+                Account account = currentAccount(tenantId, quote.getAccountId());
+                createAutomationActivity(
+                        tenantId,
+                        "QUOTE",
+                        quote.getId(),
+                        subject,
+                        "Quote for " + account.getName() + " expires on " + quote.getValidUntil() + ". Re-engage before expiry.",
+                        now
+                );
+                generatedActivities++;
+            }
+        }
+
+        auditLogService.record(
+                "RUN",
+                "RENEWAL_AUTOMATION",
+                null,
+                "Processed renewal automation with " + renewalCandidates.size() + " renewal candidates and "
+                        + expiringQuotes.size() + " expiring quotes"
+        );
+
+        return new RenewalAutomationRunResponse(
+                renewalCandidates.size(),
+                expiringQuotes.size(),
+                generatedActivities,
+                now
+        );
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<InvoiceResponse> list() {
         String tenantId = currentTenant();
@@ -89,6 +166,25 @@ public class InvoiceServiceImpl implements InvoiceService {
         activity.setRelatedEntityType("INVOICE");
         activity.setRelatedEntityId(invoice.getId());
         activity.setDetails("Account: " + accountName + ", amount: " + invoice.getAmount());
+        activity.setCreatedAt(createdAt);
+        activityRepository.save(activity);
+    }
+
+    private void createAutomationActivity(
+            String tenantId,
+            String relatedEntityType,
+            Long relatedEntityId,
+            String subject,
+            String details,
+            Instant createdAt
+    ) {
+        Activity activity = new Activity();
+        activity.setTenantId(tenantId);
+        activity.setType("RENEWAL");
+        activity.setSubject(subject);
+        activity.setRelatedEntityType(relatedEntityType);
+        activity.setRelatedEntityId(relatedEntityId);
+        activity.setDetails(details);
         activity.setCreatedAt(createdAt);
         activityRepository.save(activity);
     }

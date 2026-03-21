@@ -2,6 +2,7 @@ package com.dala.crm.service;
 
 import com.dala.crm.dto.InvoiceCreateRequest;
 import com.dala.crm.dto.InvoiceResponse;
+import com.dala.crm.dto.RenewalAutomationRunResponse;
 import java.util.List;
 
 /**
@@ -10,6 +11,8 @@ import java.util.List;
 public interface InvoiceService {
 
     InvoiceResponse create(InvoiceCreateRequest request);
+
+    RenewalAutomationRunResponse runRenewalAutomation();
 
     List<InvoiceResponse> list();
 

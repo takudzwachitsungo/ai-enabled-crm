@@ -316,6 +316,7 @@ curl -u local-view:local-view-pass \
 ### Invoices
 
 - `POST /api/v1/invoices`
+- `POST /api/v1/invoices/renewals/run`
 - `GET /api/v1/invoices`
 - `GET /api/v1/invoices/{id}`
 
@@ -534,6 +535,14 @@ curl -X POST http://localhost:8080/api/v1/invoices \
   -d '{"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}'
 ```
 
+Run renewal automation:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/invoices/renewals/run \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
+```
+
 Import a commerce event from a POS or ERP integration:
 
 ```bash
@@ -721,10 +730,11 @@ Completed:
 - Phase 3 forecasting and revenue intelligence foundations
 - Phase 3 quote-to-invoice lifecycle automation
 - Phase 3 commerce connector sync and lifecycle enrichment
+- Phase 3 renewal automation foundations
 
 Planned next:
 
-- advanced commerce workflows and renewal automation
+- refund and cancellation workflow foundations
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

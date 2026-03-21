@@ -13,5 +13,13 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     long countByTenantIdAndRelatedEntityTypeAndRelatedEntityId(String tenantId, String relatedEntityType, Long relatedEntityId);
 
+    boolean existsByTenantIdAndTypeAndRelatedEntityTypeAndRelatedEntityIdAndSubject(
+            String tenantId,
+            String type,
+            String relatedEntityType,
+            Long relatedEntityId,
+            String subject
+    );
+
     long countByTenantId(String tenantId);
 }

@@ -2,6 +2,7 @@ package com.dala.crm.controller;
 
 import com.dala.crm.dto.InvoiceCreateRequest;
 import com.dala.crm.dto.InvoiceResponse;
+import com.dala.crm.dto.RenewalAutomationRunResponse;
 import com.dala.crm.service.InvoiceService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -33,6 +34,12 @@ public class InvoiceController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INVOICES_WRITE)")
     public InvoiceResponse create(@Valid @RequestBody InvoiceCreateRequest request) {
         return invoiceService.create(request);
+    }
+
+    @PostMapping("/renewals/run")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INVOICES_WRITE)")
+    public RenewalAutomationRunResponse runRenewalAutomation() {
+        return invoiceService.runRenewalAutomation();
     }
 
     @GetMapping

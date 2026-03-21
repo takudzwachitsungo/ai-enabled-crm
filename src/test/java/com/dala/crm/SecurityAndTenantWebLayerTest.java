@@ -55,6 +55,7 @@ import com.dala.crm.dto.OpportunityResponse;
 import com.dala.crm.dto.ProductResponse;
 import com.dala.crm.dto.QuoteResponse;
 import com.dala.crm.dto.ReportSnapshotDto;
+import com.dala.crm.dto.RenewalAutomationRunResponse;
 import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
@@ -982,6 +983,33 @@ class SecurityAndTenantWebLayerTest {
                         .content("""
                                 {"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}
                                 """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanRunRenewalAutomation() throws Exception {
+        when(invoiceService.runRenewalAutomation()).thenReturn(
+                new RenewalAutomationRunResponse(
+                        2,
+                        1,
+                        3,
+                        Instant.parse("2026-03-21T11:30:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/invoices/renewals/run")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.renewalCandidateCount").value(2))
+                .andExpect(jsonPath("$.generatedActivityCount").value(3));
+    }
+
+    @Test
+    void viewerCannotRunRenewalAutomation() throws Exception {
+        mockMvc.perform(post("/api/v1/invoices/renewals/run")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isForbidden());
     }
 
