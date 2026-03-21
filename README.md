@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP with CRM records, role-based access control, workflow automation, communications logging, dashboard metrics, and traceable AI interactions.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and the first Phase 3 commerce foundation slice, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, and tenant-scoped commerce records.
 
 ## What This Repository Includes
 
@@ -8,6 +8,13 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Local RBAC model for development and internal validation
 - Core CRM records: leads, contacts, accounts, opportunities
 - Activities and timeline feed
+- Service tickets and SLA policy management
+- Knowledge base articles and canned response templates
+- Audience segments and campaign management
+- Campaign delivery execution and communication tracking
+- Scheduled report snapshots and expanded dashboard analytics
+- Ticket SLA lifecycle reporting and campaign metrics
+- Product catalog, quotes, and invoices foundations
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
@@ -17,7 +24,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Python AI service boundary for model-facing work
 - Docker Compose and GitHub Actions for local setup and CI
 
-## Phase 1 Scope Delivered
+## Platform Scope Delivered
 
 ### CRM Core
 - Create, list, and fetch leads
@@ -31,6 +38,19 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Create and list workflow definitions
 - Trigger workflow-created activities from lead and opportunity creation
 - Read dashboard summary KPIs
+- Create and list service tickets
+- Update ticket status and assignment
+- Run SLA escalation for overdue tickets
+- Create and list SLA policies
+- Create and list knowledge base articles
+- Create and list canned responses
+- Create and list audience segments
+- Create and list campaigns
+- Execute campaign delivery runs and log outbound campaign communications
+- Generate and list report snapshots
+- Read expanded dashboard analytics
+- Read ticket SLA lifecycle reports and tenant campaign metrics
+- Create and read products, quotes, and invoices
 - Register and list integration connections
 - Create and list communication records
 - Read tenant audit history
@@ -168,10 +188,10 @@ Current local users:
 
 ```text
 local-dev / local-dev-pass
-  Full read/write access across CRM, workflows, integrations, communications, AI, dashboard, and audit logs
+  Full read/write access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, commerce, workflows, integrations, communications, AI, dashboard, and audit logs
 
 local-view / local-view-pass
-  Read access across CRM, workflows, integrations, communications, AI history, dashboard, and identity
+  Read access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, commerce, workflows, integrations, communications, AI history, dashboard, and identity
 ```
 
 All protected requests must include:
@@ -231,6 +251,65 @@ curl -u local-view:local-view-pass \
 
 - `GET /api/v1/timeline`
 
+### Tickets
+
+- `POST /api/v1/tickets`
+- `GET /api/v1/tickets`
+- `GET /api/v1/tickets/sla-report`
+- `GET /api/v1/tickets/{id}`
+- `PATCH /api/v1/tickets/{id}/status`
+- `PATCH /api/v1/tickets/{id}/assignment`
+- `POST /api/v1/tickets/escalations/run`
+
+### SLA Policies
+
+- `POST /api/v1/sla-policies`
+- `GET /api/v1/sla-policies`
+
+### Knowledge Base
+
+- `POST /api/v1/knowledge-base`
+- `GET /api/v1/knowledge-base`
+- `GET /api/v1/knowledge-base/{id}`
+
+### Canned Responses
+
+- `POST /api/v1/canned-responses`
+- `GET /api/v1/canned-responses`
+- `GET /api/v1/canned-responses/{id}`
+
+### Audience Segments
+
+- `POST /api/v1/audience-segments`
+- `GET /api/v1/audience-segments`
+- `GET /api/v1/audience-segments/{id}`
+
+### Campaigns
+
+- `POST /api/v1/campaigns`
+- `GET /api/v1/campaigns`
+- `GET /api/v1/campaigns/metrics`
+- `GET /api/v1/campaigns/{id}`
+- `POST /api/v1/campaigns/{id}/deliveries/run`
+
+### Products
+
+- `POST /api/v1/products`
+- `GET /api/v1/products`
+- `GET /api/v1/products/{id}`
+
+### Quotes
+
+- `POST /api/v1/quotes`
+- `GET /api/v1/quotes`
+- `GET /api/v1/quotes/{id}`
+
+### Invoices
+
+- `POST /api/v1/invoices`
+- `GET /api/v1/invoices`
+- `GET /api/v1/invoices/{id}`
+
 ### Workflows
 
 - `POST /api/v1/workflows`
@@ -239,6 +318,13 @@ curl -u local-view:local-view-pass \
 ### Dashboard
 
 - `GET /api/v1/dashboard/summary`
+- `GET /api/v1/dashboard/analytics`
+
+### Reports
+
+- `POST /api/v1/reports`
+- `GET /api/v1/reports`
+- `GET /api/v1/reports/{id}`
 
 ### Integrations
 
@@ -276,6 +362,166 @@ curl -X POST http://localhost:8080/api/v1/workflows \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: tenant-demo" \
   -d '{"name":"Lead follow-up","triggerType":"LEAD_CREATED","actionType":"CREATE_ACTIVITY","actionSubject":"Call new lead","actionDetails":"Reach out within one business day.","active":true}'
+```
+
+Create an SLA policy:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sla-policies \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"High Priority Response","priority":"HIGH","responseHours":4,"defaultAssignee":"Support Team","active":true}'
+```
+
+Create a ticket:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"title":"Payment issue","description":"Customer could not complete payment.","priority":"HIGH","assignee":"Support Team","sourceChannel":"EMAIL","relatedEntityType":"ACCOUNT","relatedEntityId":21}'
+```
+
+Update ticket status:
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/tickets/101/status \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"status":"IN_PROGRESS","note":"Support team accepted the ticket."}'
+```
+
+Update ticket assignment:
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/tickets/101/assignment \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"assignee":"Escalation Team","note":"Escalated to specialist queue."}'
+```
+
+Run ticket escalations:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets/escalations/run \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
+```
+
+Read ticket SLA report:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/tickets/sla-report
+```
+
+Create a knowledge base article:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/knowledge-base \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"title":"Refund policy","category":"Billing","body":"Refunds are reviewed within five business days after the request is verified.","published":true}'
+```
+
+Create a canned response:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/canned-responses \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"title":"Shipping delay update","channelType":"EMAIL","category":"Support","body":"Thanks for your patience. Your order is still in transit and we will share the next update within 24 hours."}'
+```
+
+Create an audience segment:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/audience-segments \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Dormant customers","sourceType":"ACCOUNT","criteria":"lastContactedBefore=2026-01-01","estimatedSize":24,"active":true}'
+```
+
+Create a campaign:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/campaigns \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Retention outreach","channelType":"EMAIL","status":"DRAFT","audienceSegmentId":1,"subject":"We miss you","body":"Come back for a product walkthrough.","scheduledAt":"2026-03-25T08:00:00Z"}'
+```
+
+Run campaign delivery:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/campaigns/1/deliveries/run \
+  -u local-dev:local-dev-pass \
+  -H "X-Tenant-Id: tenant-demo"
+```
+
+Read campaign metrics:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/campaigns/metrics
+```
+
+Create a product:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/products \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"CRM Premium License","description":"Annual premium CRM subscription","unitPrice":499.00,"status":"ACTIVE"}'
+```
+
+Create a quote:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/quotes \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"accountId":21,"name":"Acme Renewal Quote","amount":12500.00,"status":"DRAFT","validUntil":"2026-04-01T00:00:00Z"}'
+```
+
+Create an invoice:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/invoices \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}'
+```
+
+Read dashboard analytics:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/dashboard/analytics
+```
+
+Generate a report snapshot:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/reports \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"name":"Weekly service summary","reportType":"SERVICE_OVERVIEW","deliveryChannel":"EMAIL","scheduleCadence":"WEEKLY"}'
 ```
 
 Read dashboard summary:
@@ -348,7 +594,7 @@ mvn test
 - authentication and tenant enforcement
 - authority checks for writers vs readers
 - timeline and audit log access control
-- workflow, dashboard, integration, communication, and AI endpoint security
+- workflow, dashboard, reporting, ticket, SLA, knowledge content, marketing, integration, communication, and AI endpoint security
 
 ### CI
 
@@ -368,13 +614,21 @@ Completed:
 - dashboard summary metrics
 - communication and integration foundations
 - traceable AI summary and draft flows
+- Phase 2 ticket management and SLA due-date basics
+- Phase 2 ticket status and assignment workflows
+- Phase 2 SLA breach escalation automation
+- Phase 2 knowledge base and canned response foundations
+- Phase 2 audience segmentation and campaign foundations
+- Phase 2 scheduled reporting and expanded analytics
+- Phase 2 campaign delivery execution and response tracking
+- Phase 2 SLA lifecycle reporting and campaign metrics visibility
+- Phase 3 commerce foundation with product catalog, quotes, and invoices
 
 Planned next:
 
+- POS and ERP connector groundwork
+- lead scoring and churn or health model foundations
 - JWT or OAuth2 resource server integration
-- richer outbound communication delivery adapters
-- more advanced workflow conditions and actions
-- scheduled reporting
 - production-grade AI provider orchestration from the Spring backend
 
 ## Notes
