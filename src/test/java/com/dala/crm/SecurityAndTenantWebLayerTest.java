@@ -46,6 +46,7 @@ import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.dto.CommerceEventResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
+import com.dala.crm.dto.DashboardRevenueForecastResponse;
 import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.KnowledgeBaseArticleResponse;
@@ -451,6 +452,28 @@ class SecurityAndTenantWebLayerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.publishedKnowledgeArticleCount").value(3))
                 .andExpect(jsonPath("$.reportSnapshotCount").value(3));
+    }
+
+    @Test
+    void viewerCanReadDashboardRevenueForecast() throws Exception {
+        when(dashboardService.getRevenueForecast()).thenReturn(
+                new DashboardRevenueForecastResponse(
+                        new BigDecimal("25000.00"),
+                        new BigDecimal("16250.00"),
+                        new BigDecimal("12000.00"),
+                        new BigDecimal("8000.00"),
+                        new BigDecimal("5000.00"),
+                        new BigDecimal("28450.00"),
+                        Instant.parse("2026-03-21T10:45:00Z")
+                )
+        );
+
+        mockMvc.perform(get("/api/v1/dashboard/forecast")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightedPipelineAmount").value(16250.00))
+                .andExpect(jsonPath("$.projectedRevenueAmount").value(28450.00));
     }
 
     @Test

@@ -13,6 +13,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Audience segments and campaign management
 - Campaign delivery execution and communication tracking
 - Scheduled report snapshots and expanded dashboard analytics
+- Revenue forecast and pipeline intelligence
 - Ticket SLA lifecycle reporting and campaign metrics
 - Product catalog, quotes, and invoices foundations
 - POS and ERP connector groundwork with commerce event ingestion
@@ -331,6 +332,7 @@ curl -u local-view:local-view-pass \
 
 - `GET /api/v1/dashboard/summary`
 - `GET /api/v1/dashboard/analytics`
+- `GET /api/v1/dashboard/forecast`
 
 ### Reports
 
@@ -540,6 +542,14 @@ curl -u local-view:local-view-pass \
   http://localhost:8080/api/v1/dashboard/analytics
 ```
 
+Read dashboard revenue forecast:
+
+```bash
+curl -u local-view:local-view-pass \
+  -H "X-Tenant-Id: tenant-demo" \
+  http://localhost:8080/api/v1/dashboard/forecast
+```
+
 Generate a report snapshot:
 
 ```bash
@@ -692,11 +702,12 @@ Completed:
 - Phase 3 POS and ERP connector groundwork with commerce events linked to CRM records
 - Phase 3 lead scoring and account health model foundations
 - Phase 3 churn risk and recommendation automation foundations
+- Phase 3 forecasting and revenue intelligence foundations
 
 Planned next:
 
 - deeper commerce workflows and connector sync automation
-- forecasting and revenue intelligence foundations
+- quote-to-invoice lifecycle automation
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 
