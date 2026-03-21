@@ -38,6 +38,8 @@ public final class CrmAuthorities {
     public static final String QUOTES_WRITE = "crm:quotes:write";
     public static final String INVOICES_READ = "crm:invoices:read";
     public static final String INVOICES_WRITE = "crm:invoices:write";
+    public static final String COMMERCE_EVENTS_READ = "crm:commerce-events:read";
+    public static final String COMMERCE_EVENTS_WRITE = "crm:commerce-events:write";
     public static final String INTEGRATIONS_READ = "crm:integrations:read";
     public static final String INTEGRATIONS_WRITE = "crm:integrations:write";
     public static final String COMMUNICATIONS_READ = "crm:communications:read";

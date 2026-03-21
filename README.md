@@ -1,6 +1,6 @@
 # AI-Enabled CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and the first Phase 3 commerce foundation slice, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, and tenant-scoped commerce records.
+AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and early Phase 3 commerce and connector foundations, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, tenant-scoped commerce records, and POS or ERP commerce event ingestion.
 
 ## What This Repository Includes
 
@@ -15,6 +15,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Scheduled report snapshots and expanded dashboard analytics
 - Ticket SLA lifecycle reporting and campaign metrics
 - Product catalog, quotes, and invoices foundations
+- POS and ERP connector groundwork with commerce event ingestion
 - Workflow automation with trigger-action rules
 - Integration connection registry for email and WhatsApp style channels
 - Communication record tracking
@@ -51,6 +52,7 @@ AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot a
 - Read expanded dashboard analytics
 - Read ticket SLA lifecycle reports and tenant campaign metrics
 - Create and read products, quotes, and invoices
+- Import commerce events from POS and ERP integrations linked to CRM records
 - Register and list integration connections
 - Create and list communication records
 - Read tenant audit history
@@ -310,6 +312,12 @@ curl -u local-view:local-view-pass \
 - `GET /api/v1/invoices`
 - `GET /api/v1/invoices/{id}`
 
+### Commerce Events
+
+- `POST /api/v1/commerce-events`
+- `GET /api/v1/commerce-events`
+- `GET /api/v1/commerce-events/{id}`
+
 ### Workflows
 
 - `POST /api/v1/workflows`
@@ -506,6 +514,16 @@ curl -X POST http://localhost:8080/api/v1/invoices \
   -d '{"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}'
 ```
 
+Import a commerce event from a POS or ERP integration:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/commerce-events \
+  -u local-dev:local-dev-pass \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: tenant-demo" \
+  -d '{"integrationConnectionId":71,"eventType":"SALE_COMPLETED","sourceReference":"POS-1001","relatedEntityType":"ACCOUNT","relatedEntityId":21,"amount":12500.00,"payload":"items=1"}'
+```
+
 Read dashboard analytics:
 
 ```bash
@@ -623,11 +641,12 @@ Completed:
 - Phase 2 campaign delivery execution and response tracking
 - Phase 2 SLA lifecycle reporting and campaign metrics visibility
 - Phase 3 commerce foundation with product catalog, quotes, and invoices
+- Phase 3 POS and ERP connector groundwork with commerce events linked to CRM records
 
 Planned next:
 
-- POS and ERP connector groundwork
 - lead scoring and churn or health model foundations
+- deeper commerce workflows and connector sync automation
 - JWT or OAuth2 resource server integration
 - production-grade AI provider orchestration from the Spring backend
 

@@ -17,6 +17,7 @@ import com.dala.crm.controller.AudienceSegmentController;
 import com.dala.crm.controller.AuditLogController;
 import com.dala.crm.controller.CannedResponseController;
 import com.dala.crm.controller.CampaignController;
+import com.dala.crm.controller.CommerceEventController;
 import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.ConversationRecordController;
 import com.dala.crm.controller.DashboardController;
@@ -42,6 +43,7 @@ import com.dala.crm.dto.AuditLogResponse;
 import com.dala.crm.dto.CampaignDeliveryRunResponse;
 import com.dala.crm.dto.CampaignMetricsResponse;
 import com.dala.crm.dto.CampaignResponse;
+import com.dala.crm.dto.CommerceEventResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
 import com.dala.crm.dto.DashboardSummaryResponse;
@@ -68,6 +70,7 @@ import com.dala.crm.service.AiInteractionService;
 import com.dala.crm.service.AudienceSegmentService;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.CampaignService;
+import com.dala.crm.service.CommerceEventService;
 import com.dala.crm.service.ContactService;
 import com.dala.crm.service.ConversationRecordService;
 import com.dala.crm.service.DashboardService;
@@ -111,6 +114,7 @@ import org.springframework.test.web.servlet.MockMvc;
         KnowledgeBaseArticleController.class,
         CannedResponseController.class,
         CampaignController.class,
+        CommerceEventController.class,
         ProductController.class,
         QuoteController.class,
         InvoiceController.class,
@@ -173,6 +177,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private CampaignService campaignService;
+
+    @MockBean
+    private CommerceEventService commerceEventService;
 
     @MockBean
     private ConversationRecordService conversationRecordService;
@@ -248,6 +255,7 @@ class SecurityAndTenantWebLayerTest {
                         "crm:products:read",
                         "crm:quotes:read",
                         "crm:invoices:read",
+                        "crm:commerce-events:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -873,6 +881,42 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].invoiceNumber").value("INV-2026-001"));
+    }
+
+    @Test
+    void viewerCanReadCommerceEvents() throws Exception {
+        when(commerceEventService.list()).thenReturn(List.of(
+                new CommerceEventResponse(
+                        201L,
+                        71L,
+                        "Retail POS",
+                        "SALE_COMPLETED",
+                        "POS-1001",
+                        "ACCOUNT",
+                        21L,
+                        new BigDecimal("12500.00"),
+                        "{\"items\":1}",
+                        Instant.parse("2026-03-21T10:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/commerce-events")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].integrationName").value("Retail POS"));
+    }
+
+    @Test
+    void viewerCannotCreateCommerceEvent() throws Exception {
+        mockMvc.perform(post("/api/v1/commerce-events")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"integrationConnectionId":71,"eventType":"SALE_COMPLETED","sourceReference":"POS-1001","relatedEntityType":"ACCOUNT","relatedEntityId":21,"amount":12500.00,"payload":"items=1"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
