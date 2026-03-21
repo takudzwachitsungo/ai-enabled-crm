@@ -9,6 +9,8 @@ public record DashboardSummaryResponse(
         long accountCount,
         long opportunityCount,
         long activityCount,
+        long ticketCount,
+        long overdueTicketCount,
         long activeWorkflowCount,
         long integrationCount,
         long communicationCount,

@@ -21,6 +21,8 @@ import com.dala.crm.controller.IdentityController;
 import com.dala.crm.controller.IntegrationConnectionController;
 import com.dala.crm.controller.LeadController;
 import com.dala.crm.controller.OpportunityController;
+import com.dala.crm.controller.SlaPolicyController;
+import com.dala.crm.controller.TicketController;
 import com.dala.crm.controller.TimelineController;
 import com.dala.crm.controller.WorkflowDefinitionController;
 import com.dala.crm.dto.AccountResponse;
@@ -33,6 +35,8 @@ import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
+import com.dala.crm.dto.SlaPolicyResponse;
+import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.WorkflowDefinitionDto;
 import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.security.SecurityConfig;
@@ -47,6 +51,8 @@ import com.dala.crm.service.DashboardService;
 import com.dala.crm.service.IntegrationConnectionService;
 import com.dala.crm.service.LeadService;
 import com.dala.crm.service.OpportunityService;
+import com.dala.crm.service.SlaPolicyService;
+import com.dala.crm.service.TicketService;
 import com.dala.crm.service.WorkflowDefinitionService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -73,7 +79,9 @@ import org.springframework.test.web.servlet.MockMvc;
         DashboardController.class,
         IntegrationConnectionController.class,
         ConversationRecordController.class,
-        AiInteractionController.class
+        AiInteractionController.class,
+        TicketController.class,
+        SlaPolicyController.class
 })
 @Import({SecurityConfig.class, TenantFilter.class, GlobalExceptionHandler.class})
 class SecurityAndTenantWebLayerTest {
@@ -113,6 +121,12 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private AiInteractionService aiInteractionService;
+
+    @MockBean
+    private TicketService ticketService;
+
+    @MockBean
+    private SlaPolicyService slaPolicyService;
 
     @Test
     void healthEndpointIsPublic() throws Exception {
@@ -163,6 +177,8 @@ class SecurityAndTenantWebLayerTest {
                         "crm:accounts:read",
                         "crm:opportunities:read",
                         "crm:activities:read",
+                        "crm:tickets:read",
+                        "crm:sla-policies:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -337,14 +353,84 @@ class SecurityAndTenantWebLayerTest {
 
     @Test
     void viewerCanReadDashboardSummary() throws Exception {
-        when(dashboardService.getSummary()).thenReturn(new DashboardSummaryResponse(4, 3, 2, 1, 5, 1, 2, 6, 2));
+        when(dashboardService.getSummary()).thenReturn(new DashboardSummaryResponse(4, 3, 2, 1, 5, 7, 2, 1, 2, 6, 2));
 
         mockMvc.perform(get("/api/v1/dashboard/summary")
                         .with(httpBasic("local-view", "local-view-pass"))
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.leadCount").value(4))
+                .andExpect(jsonPath("$.ticketCount").value(7))
                 .andExpect(jsonPath("$.communicationCount").value(6));
+    }
+
+    @Test
+    void viewerCanReadTickets() throws Exception {
+        when(ticketService.getTickets()).thenReturn(List.of(
+                new TicketResponse(
+                        101L,
+                        "Payment issue",
+                        "Customer could not complete payment.",
+                        "HIGH",
+                        "OPEN",
+                        "Support Team",
+                        "EMAIL",
+                        "ACCOUNT",
+                        21L,
+                        Instant.parse("2026-03-20T12:00:00Z"),
+                        Instant.parse("2026-03-20T09:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/tickets")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].priority").value("HIGH"));
+    }
+
+    @Test
+    void viewerCannotCreateTicket() throws Exception {
+        mockMvc.perform(post("/api/v1/tickets")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Payment issue","description":"Customer could not complete payment.","priority":"HIGH","sourceChannel":"EMAIL"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanReadSlaPolicies() throws Exception {
+        when(slaPolicyService.getPolicies()).thenReturn(List.of(
+                new SlaPolicyResponse(
+                        111L,
+                        "High Priority Response",
+                        "HIGH",
+                        4,
+                        true,
+                        Instant.parse("2026-03-20T09:10:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/sla-policies")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].responseHours").value(4));
+    }
+
+    @Test
+    void viewerCannotCreateSlaPolicy() throws Exception {
+        mockMvc.perform(post("/api/v1/sla-policies")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"High Priority Response","priority":"HIGH","responseHours":4,"active":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test

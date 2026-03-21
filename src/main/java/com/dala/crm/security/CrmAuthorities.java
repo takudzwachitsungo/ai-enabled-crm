@@ -18,6 +18,10 @@ public final class CrmAuthorities {
     public static final String WORKFLOWS_READ = "crm:workflows:read";
     public static final String WORKFLOWS_WRITE = "crm:workflows:write";
     public static final String DASHBOARD_READ = "crm:dashboard:read";
+    public static final String TICKETS_READ = "crm:tickets:read";
+    public static final String TICKETS_WRITE = "crm:tickets:write";
+    public static final String SLA_POLICIES_READ = "crm:sla-policies:read";
+    public static final String SLA_POLICIES_WRITE = "crm:sla-policies:write";
     public static final String INTEGRATIONS_READ = "crm:integrations:read";
     public static final String INTEGRATIONS_WRITE = "crm:integrations:write";
     public static final String COMMUNICATIONS_READ = "crm:communications:read";
