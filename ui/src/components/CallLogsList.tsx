@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   PhoneIcon,
   ChevronDownIcon,
@@ -12,27 +12,45 @@ import {
   PhoneOutgoingIcon,
   PhoneMissedIcon,
 } from 'lucide-react';
-import { callLogs, users } from '../data/mockData';
-import { Avatar } from './ui/Avatar';
-import { CommunicationRecord } from '../types/crm';
+import { AuthSession, CommunicationRecord } from '../types/crm';
+import { createCommunication } from '../lib/api';
 
 interface CallLogsListProps {
   records?: CommunicationRecord[];
+  session: AuthSession;
+  onRefresh: () => Promise<void>;
 }
 
-export function CallLogsList({ records }: CallLogsListProps) {
-  const communicationRows = records && records.length > 0
-    ? records.map((record, index) => ({
-        id: String(record.id),
-        callerId: users[index % users.length]?.id ?? users[0].id,
-        receiverName: record.participant,
-        receiverPhone: record.channelType,
-        type: record.direction === 'OUTBOUND' ? 'Outgoing' : record.direction === 'INBOUND' ? 'Incoming' : 'Missed',
-        duration: record.relatedEntityType ? `${record.relatedEntityType} #${record.relatedEntityId ?? '-'}` : record.channelType,
-        date: new Date(record.createdAt).toLocaleString(),
-        note: record.subject || record.messageBody,
-      }))
-    : callLogs;
+export function CallLogsList({ records, session, onRefresh }: CallLogsListProps) {
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    channelType: 'EMAIL',
+    direction: 'OUTBOUND',
+    participant: '',
+    subject: '',
+    messageBody: '',
+    relatedEntityType: 'LEAD',
+    relatedEntityId: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const communicationRows = (records ?? []).map((record) => ({
+    id: String(record.id),
+    callerName: record.name,
+    participant: record.participant,
+    channel: record.channelType,
+    type: record.direction === 'OUTBOUND' ? 'Outgoing' : record.direction === 'INBOUND' ? 'Incoming' : 'Missed',
+    relatedTo: record.relatedEntityType ? `${record.relatedEntityType} #${record.relatedEntityId ?? '-'}` : record.channelType,
+    date: new Date(record.createdAt).toLocaleString(),
+    note: record.subject || record.messageBody,
+  })).filter((record) =>
+    [record.callerName, record.participant, record.channel, record.type, record.note]
+      .join(' ')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -47,6 +65,40 @@ export function CallLogsList({ records }: CallLogsListProps) {
     }
   };
 
+  async function handleCreate() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await createCommunication(session, {
+        name: form.name,
+        channelType: form.channelType,
+        direction: form.direction,
+        participant: form.participant,
+        subject: form.subject,
+        messageBody: form.messageBody,
+        relatedEntityType: form.relatedEntityType,
+        relatedEntityId: form.relatedEntityId ? Number(form.relatedEntityId) : null,
+      });
+      setForm({
+        name: '',
+        channelType: 'EMAIL',
+        direction: 'OUTBOUND',
+        participant: '',
+        subject: '',
+        messageBody: '',
+        relatedEntityType: 'LEAD',
+        relatedEntityId: '',
+      });
+      setCreating(false);
+      setMessage('Communication created successfully.');
+      await onRefresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to create communication.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f8f9fa] overflow-hidden">
       <div className="bg-white px-4 py-4 border-b border-gray-200 flex flex-col gap-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between shrink-0">
@@ -58,16 +110,36 @@ export function CallLogsList({ records }: CallLogsListProps) {
             <ChevronDownIcon className="w-4 h-4 text-gray-400" />
           </button>
         </div>
-        <button className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-gray-800 transition-colors">
+        <button onClick={() => setCreating((value) => !value)} className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-gray-800 transition-colors">
           <PlusIcon className="w-4 h-4" />
           Create
         </button>
       </div>
 
+      {creating ? (
+        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
+          <div className="grid gap-3 lg:grid-cols-[1fr_0.8fr_0.8fr_1fr_1.2fr_1.2fr_auto]">
+            <input value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} placeholder="Record name" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <select value={form.channelType} onChange={(e) => setForm((c) => ({ ...c, channelType: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><option value="EMAIL">Email</option><option value="WHATSAPP">WhatsApp</option><option value="PHONE">Phone</option></select>
+            <select value={form.direction} onChange={(e) => setForm((c) => ({ ...c, direction: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><option value="OUTBOUND">Outbound</option><option value="INBOUND">Inbound</option></select>
+            <input value={form.participant} onChange={(e) => setForm((c) => ({ ...c, participant: e.target.value }))} placeholder="Participant" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <input value={form.subject} onChange={(e) => setForm((c) => ({ ...c, subject: e.target.value }))} placeholder="Subject" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <input value={form.messageBody} onChange={(e) => setForm((c) => ({ ...c, messageBody: e.target.value }))} placeholder="Message body" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <button onClick={handleCreate} disabled={saving || !form.name || !form.participant || !form.messageBody} className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {message ? <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 sm:px-6">{message}</div> : null}
+
       <div className="bg-white px-4 py-3 border-b border-gray-200 flex flex-col gap-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between shrink-0">
         <div className="relative w-full lg:w-64">
           <input
             type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search communications..."
             className="w-full pl-3 pr-10 py-1.5 bg-gray-100 border-transparent rounded-md text-sm focus:bg-white focus:border-gray-300 focus:ring-0 transition-colors"
           />
@@ -109,29 +181,23 @@ export function CallLogsList({ records }: CallLogsListProps) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {communicationRows.map((log) => {
-              const caller = users.find((u) => u.id === log.callerId);
               return (
                 <tr key={log.id} className="hover:bg-gray-50 cursor-pointer transition-colors group">
                   <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" className="rounded border-gray-300 text-black focus:ring-black" />
                   </td>
                   <td className="px-6 py-3">
-                    {caller && (
-                      <div className="flex items-center gap-3">
-                        <Avatar src={caller.avatar} fallback={caller.name} size="md" />
-                        <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{caller.name}</span>
-                      </div>
-                    )}
+                    <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{log.callerName}</span>
                   </td>
-                  <td className="px-6 py-3 text-gray-900 font-medium">{log.receiverName}</td>
-                  <td className="px-6 py-3 text-gray-600">{log.receiverPhone}</td>
+                  <td className="px-6 py-3 text-gray-900 font-medium">{log.participant}</td>
+                  <td className="px-6 py-3 text-gray-600">{log.channel}</td>
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-2">
                       {getTypeIcon(log.type)}
                       <span className="text-gray-700 font-medium">{log.type}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-3 text-gray-600">{log.duration}</td>
+                  <td className="px-6 py-3 text-gray-600">{log.relatedTo}</td>
                   <td className="px-6 py-3 text-gray-500">{log.date}</td>
                   <td className="px-6 py-3 text-gray-500 truncate max-w-[220px]">{log.note}</td>
                 </tr>
@@ -139,6 +205,7 @@ export function CallLogsList({ records }: CallLogsListProps) {
             })}
           </tbody>
         </table>
+        {!communicationRows.length ? <div className="px-6 py-12 text-center text-sm text-gray-500">No communications match the current search yet.</div> : null}
       </div>
 
       <div className="bg-white px-4 py-3 border-t border-gray-200 flex flex-col gap-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between shrink-0 text-sm">

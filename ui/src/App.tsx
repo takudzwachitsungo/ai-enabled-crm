@@ -14,8 +14,10 @@ import { EmailTemplatesList } from "./components/EmailTemplatesList";
 import { Dashboard } from "./components/Dashboard";
 import { TicketList } from "./components/TicketList";
 import { CommerceList } from "./components/CommerceList";
+import { AiWorkspace } from "./components/AiWorkspace";
+import { PlatformWorkspace } from "./components/PlatformWorkspace";
 import { AuthScreen } from "./components/AuthScreen";
-import { loadCrmSnapshot } from "./lib/api";
+import { loadCrmSnapshot, loginWorkspace, registerWorkspace } from "./lib/api";
 import { AuthSession, CrmSnapshot } from "./types/crm";
 
 const STORAGE_KEY = "ai-enabled-crm-ui-session";
@@ -40,6 +42,8 @@ const knownViews = [
   "tasks",
   "call-logs",
   "commerce",
+  "platform",
+  "ai-workspace",
   "email-templates",
 ];
 
@@ -98,6 +102,57 @@ export function App() {
     }
   };
 
+  const handleLogin = async (nextSession: AuthSession) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await loginWorkspace(nextSession.baseUrl, {
+        tenantId: nextSession.tenantId,
+        email: nextSession.username,
+        password: nextSession.password,
+      });
+      await connect(nextSession);
+    } catch (err) {
+      setSnapshot(null);
+      setError(err instanceof Error ? err.message : "Unable to sign in to the workspace.");
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (payload: {
+    baseUrl: string;
+    companyName: string;
+    tenantId: string;
+    fullName: string;
+    email: string;
+    password: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await registerWorkspace(payload.baseUrl, payload);
+      await connect({
+        baseUrl: payload.baseUrl,
+        tenantId: payload.tenantId,
+        username: payload.email,
+        password: payload.password,
+      });
+    } catch (err) {
+      setSnapshot(null);
+      setError(err instanceof Error ? err.message : "Unable to create the workspace.");
+      setLoading(false);
+    }
+  };
+
+  const refreshSnapshot = async () => {
+    if (!session) {
+      return;
+    }
+    await connect(session);
+  };
+
   const handleSignOut = () => {
     setSession(null);
     setSnapshot(null);
@@ -120,10 +175,12 @@ export function App() {
           <LeadsList
             onLeadClick={handleLeadClick}
             records={snapshot?.leads}
+            session={session}
+            onRefresh={refreshSnapshot}
           />
         );
       case "deals":
-        return <DealsKanban records={snapshot?.opportunities} />;
+        return <DealsKanban records={snapshot?.opportunities} session={session} onRefresh={refreshSnapshot} />;
       case "lead-detail":
         return selectedLeadId ? (
           <LeadDetail
@@ -139,26 +196,58 @@ export function App() {
             forecast={snapshot?.forecast}
             leadRecords={snapshot?.leads}
             opportunityRecords={snapshot?.opportunities}
+            ticketRecords={snapshot?.tickets}
+            activityRecords={snapshot?.activities}
+            quoteRecords={snapshot?.quotes}
+            invoiceRecords={snapshot?.invoices}
+            aiInteractions={snapshot?.aiInteractions}
           />
         );
       case "notifications":
-        return <NotificationsList />;
+        return (
+          <NotificationsList
+            audienceSegments={snapshot?.audienceSegments}
+            campaigns={snapshot?.campaigns}
+            reportSnapshots={snapshot?.reportSnapshots}
+          />
+        );
       case "contacts":
-        return <ContactsList records={snapshot?.contacts} />;
+        return <ContactsList records={snapshot?.contacts} session={session} onRefresh={refreshSnapshot} />;
       case "organizations":
-        return <OrganizationsList records={snapshot?.accounts} />;
+        return <OrganizationsList records={snapshot?.accounts} session={session} onRefresh={refreshSnapshot} />;
       case "tickets":
-        return <TicketList records={snapshot?.tickets} />;
+        return <TicketList session={session} records={snapshot?.tickets} onRefresh={refreshSnapshot} />;
       case "notes":
         return <NotesList records={snapshot?.auditLogs} />;
       case "tasks":
-        return <TasksList records={snapshot?.activities} />;
+        return <TasksList records={snapshot?.activities} session={session} onRefresh={refreshSnapshot} />;
       case "call-logs":
-        return <CallLogsList records={snapshot?.communications} />;
+        return <CallLogsList records={snapshot?.communications} session={session} onRefresh={refreshSnapshot} />;
       case "commerce":
-        return <CommerceList quotes={snapshot?.quotes} invoices={snapshot?.invoices} />;
+        return <CommerceList session={session} quotes={snapshot?.quotes} invoices={snapshot?.invoices} onRefresh={refreshSnapshot} />;
+      case "platform":
+        return (
+          <PlatformWorkspace
+            session={session}
+            customEntityDefinitions={snapshot?.customEntityDefinitions}
+            users={snapshot?.users}
+            workflowDefinitions={snapshot?.workflowDefinitions}
+            workflowCatalog={snapshot?.workflowCatalog}
+            integrations={snapshot?.integrations}
+            marketplaceApps={snapshot?.marketplaceApps}
+            onRefresh={refreshSnapshot}
+          />
+        );
+      case "ai-workspace":
+        return <AiWorkspace session={session} interactions={snapshot?.aiInteractions} leads={snapshot?.leads} onRefresh={refreshSnapshot} />;
       case "email-templates":
-        return <EmailTemplatesList />;
+        return (
+          <EmailTemplatesList
+            knowledgeArticles={snapshot?.knowledgeArticles}
+            cannedResponses={snapshot?.cannedResponses}
+            products={snapshot?.products}
+          />
+        );
       default:
         return (
           <div className="flex flex-1 items-center justify-center bg-[#f8f9fa] p-6">
@@ -179,12 +268,18 @@ export function App() {
         initialSession={DEFAULT_SESSION}
         error={error}
         loading={loading}
-        onSubmit={(nextSession) => {
-          void connect(nextSession);
+        onLogin={(nextSession) => {
+          void handleLogin(nextSession);
+        }}
+        onSignup={(payload) => {
+          void handleSignup(payload);
         }}
       />
     );
   }
+
+  const displayTenant = snapshot?.identity?.tenantName ?? session.tenantId;
+  const displayUser = snapshot?.identity?.fullName ?? snapshot?.identity?.username ?? session.username;
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-white font-sans text-gray-900 selection:bg-gray-200">
@@ -192,8 +287,8 @@ export function App() {
         <Sidebar
           currentView={currentView}
           onNavigate={handleNavigate}
-          tenantId={session.tenantId}
-          username={snapshot?.identity?.username ?? session.username}
+          tenantId={displayTenant}
+          username={displayUser}
           onSignOut={handleSignOut}
         />
       </div>
@@ -204,7 +299,7 @@ export function App() {
             <div>
               <div className="text-sm font-semibold text-gray-900">AI CRM</div>
               <div className="text-xs text-gray-500">
-                {session.tenantId} · {snapshot?.identity?.username ?? session.username}
+                {displayTenant} · {displayUser}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -240,17 +335,23 @@ export function App() {
                           ? "Accounts"
                           : view === "tickets"
                             ? "Tickets"
-                          : view === "tasks"
-                            ? "Activities"
-                            : view === "call-logs"
-                              ? "Communications"
-                              : view === "commerce"
-                                ? "Commerce"
-                              : view === "email-templates"
-                                ? "Templates"
-                                : view === "notes"
-                                  ? "Audit Notes"
-                                  : view.charAt(0).toUpperCase() + view.slice(1).replace("-", " ");
+                            : view === "tasks"
+                              ? "Activities"
+                              : view === "call-logs"
+                                ? "Communications"
+                                : view === "commerce"
+                                  ? "Commerce"
+                                  : view === "platform"
+                                    ? "Platform"
+                                    : view === "ai-workspace"
+                                      ? "AI Workspace"
+                                      : view === "notifications"
+                                        ? "Campaigns"
+                                        : view === "email-templates"
+                                          ? "Library"
+                                          : view === "notes"
+                                            ? "Audit Notes"
+                                            : view.charAt(0).toUpperCase() + view.slice(1).replace("-", " ");
                     const active =
                       currentView === view || (currentView === "lead-detail" && view === "leads");
 

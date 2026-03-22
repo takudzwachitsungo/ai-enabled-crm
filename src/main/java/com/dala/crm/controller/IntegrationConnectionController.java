@@ -2,6 +2,8 @@ package com.dala.crm.controller;
 
 import com.dala.crm.dto.IntegrationConnectionCreateRequest;
 import com.dala.crm.dto.IntegrationConnectionDto;
+import com.dala.crm.dto.IntegrationMarketplaceAppDto;
+import com.dala.crm.dto.IntegrationMarketplaceInstallRequest;
 import com.dala.crm.service.IntegrationConnectionService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -32,6 +34,19 @@ public class IntegrationConnectionController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INTEGRATIONS_WRITE)")
     public IntegrationConnectionDto create(@Valid @RequestBody IntegrationConnectionCreateRequest request) {
         return integrationConnectionService.create(request);
+    }
+
+    @GetMapping("/marketplace")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INTEGRATIONS_READ)")
+    public List<IntegrationMarketplaceAppDto> marketplace() {
+        return integrationConnectionService.listMarketplaceApps();
+    }
+
+    @PostMapping("/marketplace/install")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INTEGRATIONS_WRITE)")
+    public IntegrationConnectionDto install(@Valid @RequestBody IntegrationMarketplaceInstallRequest request) {
+        return integrationConnectionService.installMarketplaceApp(request);
     }
 
     @GetMapping

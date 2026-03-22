@@ -8,6 +8,8 @@ public record IntegrationConnectionDto(
         String name,
         String channelType,
         String provider,
+        String marketplaceAppKey,
+        String marketplaceVersion,
         String status,
         java.time.Instant createdAt
 ) {

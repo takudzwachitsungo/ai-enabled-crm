@@ -11,6 +11,8 @@ import {
   PhoneIcon,
   MailIcon,
   ReceiptTextIcon,
+  SparklesIcon,
+  PuzzleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   PinIcon,
@@ -34,7 +36,7 @@ export function Sidebar({ currentView, onNavigate, tenantId, username, onSignOut
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
-    { id: "notifications", label: "Notifications", icon: BellIcon, badge: "6" },
+    { id: "notifications", label: "Campaigns", icon: BellIcon },
     { id: "leads", label: "Leads", icon: UsersIcon },
     { id: "deals", label: "Opportunities", icon: HandshakeIcon },
     { id: "contacts", label: "Contacts", icon: ContactIcon },
@@ -44,7 +46,9 @@ export function Sidebar({ currentView, onNavigate, tenantId, username, onSignOut
     { id: "tasks", label: "Activities", icon: CheckSquareIcon },
     { id: "call-logs", label: "Communications", icon: PhoneIcon },
     { id: "commerce", label: "Commerce", icon: ReceiptTextIcon },
-    { id: "email-templates", label: "Templates", icon: MailIcon },
+    { id: "platform", label: "Platform", icon: PuzzleIcon },
+    { id: "ai-workspace", label: "AI Workspace", icon: SparklesIcon },
+    { id: "email-templates", label: "Library", icon: MailIcon },
   ];
 
   return (

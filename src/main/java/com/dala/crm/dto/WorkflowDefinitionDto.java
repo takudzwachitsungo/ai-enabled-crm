@@ -8,9 +8,13 @@ public record WorkflowDefinitionDto(
         String name,
         String triggerType,
         String triggerFilter,
+        String targetEntityType,
+        String targetEntityApiName,
+        String conditionsJson,
         String actionType,
         String actionSubject,
         String actionDetails,
+        String actionConfigJson,
         boolean active,
         java.time.Instant createdAt
 ) {

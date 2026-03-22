@@ -1,145 +1,185 @@
-import React from 'react';
+import React, { useMemo, useState } from "react";
+import { BookOpenIcon, MailIcon, PackageIcon, SearchIcon } from "lucide-react";
 import {
-  MailIcon,
-  ChevronDownIcon,
-  PlusIcon,
-  SearchIcon,
-  RefreshCwIcon,
-  FilterIcon,
-  ArrowUpDownIcon,
-  ColumnsIcon,
-  MoreHorizontalIcon } from
-'lucide-react';
-import { emailTemplates } from '../data/mockData';
-export function EmailTemplatesList() {
+  CannedResponseRecord,
+  KnowledgeBaseArticleRecord,
+  ProductRecord,
+} from "../types/crm";
+
+interface EmailTemplatesListProps {
+  knowledgeArticles?: KnowledgeBaseArticleRecord[] | null;
+  cannedResponses?: CannedResponseRecord[] | null;
+  products?: ProductRecord[] | null;
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString();
+}
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function EmailTemplatesList({
+  knowledgeArticles = [],
+  cannedResponses = [],
+  products = [],
+}: EmailTemplatesListProps) {
+  const [query, setQuery] = useState("");
+
+  const filteredKnowledge = useMemo(
+    () =>
+      knowledgeArticles.filter((item) =>
+        [item.title, item.category, item.body].join(" ").toLowerCase().includes(query.toLowerCase()),
+      ),
+    [knowledgeArticles, query],
+  );
+
+  const filteredResponses = useMemo(
+    () =>
+      cannedResponses.filter((item) =>
+        [item.title, item.category ?? "", item.channelType, item.body]
+          .join(" ")
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [cannedResponses, query],
+  );
+
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((item) =>
+        [item.name, item.description ?? "", item.status].join(" ").toLowerCase().includes(query.toLowerCase()),
+      ),
+    [products, query],
+  );
+
   return (
-    <div className="flex-1 flex flex-col h-screen bg-[#f8f9fa] overflow-hidden">
-      {/* Header */}
-      <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2 text-lg">
-          <span className="text-gray-500">Templates /</span>
-          <button className="flex items-center gap-2 font-semibold text-gray-900 hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
-            <MailIcon className="w-5 h-5 text-gray-400" />
-            List
-            <ChevronDownIcon className="w-4 h-4 text-gray-400" />
-          </button>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8f9fa]">
+      <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-lg">
+            <span className="text-gray-500">Library /</span>
+            <span className="font-semibold text-gray-900">Knowledge & Catalog</span>
+          </div>
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-500">
+            {knowledgeArticles.length} articles · {cannedResponses.length} responses · {products.length} products
+          </div>
         </div>
-        <button className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-gray-800 transition-colors">
-          <PlusIcon className="w-4 h-4" />
-          Create
-        </button>
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-white px-6 py-3 border-b border-gray-200 flex items-center justify-between shrink-0">
-        <div className="relative w-64">
+      <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
+        <div className="relative max-w-md">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
-            type="text"
-            placeholder="ID"
-            className="w-full pl-3 pr-10 py-1.5 bg-gray-100 border-transparent rounded-md text-sm focus:bg-white focus:border-gray-300 focus:ring-0 transition-colors" />
-          
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors">
-            <RefreshCwIcon className="w-4 h-4" />
-          </button>
-          <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200">
-            <FilterIcon className="w-4 h-4" /> Filter
-          </button>
-          <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200">
-            <ArrowUpDownIcon className="w-4 h-4" /> Sort
-          </button>
-          <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200">
-            <ColumnsIcon className="w-4 h-4" /> Columns
-          </button>
-          <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors border border-gray-200">
-            <MoreHorizontalIcon className="w-4 h-4" />
-          </button>
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search articles, responses, and products"
+            className="w-full rounded-md border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-700"
+          />
         </div>
       </div>
 
-      {/* Table Area */}
-      <div className="flex-1 overflow-auto bg-white">
-        <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-gray-500 bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 font-medium w-12">
-                <input
-                  type="checkbox"
-                  className="rounded border-gray-300 text-black focus:ring-black" />
-                
-              </th>
-              <th className="px-6 py-3 font-medium">Name</th>
-              <th className="px-6 py-3 font-medium">Subject</th>
-              <th className="px-6 py-3 font-medium">Enabled</th>
-              <th className="px-6 py-3 font-medium">Use Count</th>
-              <th className="px-6 py-3 font-medium">Last Modified</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {emailTemplates.map((template) =>
-            <tr
-              key={template.id}
-              className="hover:bg-gray-50 cursor-pointer transition-colors group">
-              
-                <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
-                  <input
-                  type="checkbox"
-                  className="rounded border-gray-300 text-black focus:ring-black" />
-                
-                </td>
-                <td className="px-6 py-3">
-                  <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    {template.name}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-gray-600">{template.subject}</td>
-                <td className="px-6 py-3">
-                  <div className="flex items-center gap-2">
-                    <div
-                    className={`w-2.5 h-2.5 rounded-full ${template.enabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 sm:p-6 xl:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-6">
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <div className="flex items-center gap-2 font-semibold text-gray-900">
+                  <BookOpenIcon className="h-4 w-4 text-gray-400" />
+                  Knowledge base
+                </div>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {filteredKnowledge.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-sm text-gray-500">No knowledge articles match the current search.</div>
+                ) : (
+                  filteredKnowledge.map((article) => (
+                    <div key={article.id} className="px-5 py-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900">{article.title}</div>
+                          <div className="mt-1 text-xs text-gray-500">{article.category} · {article.published ? "Published" : "Draft"}</div>
+                          <p className="mt-2 line-clamp-3 text-sm text-gray-700">{article.body}</p>
+                        </div>
+                        <div className="text-xs text-gray-500">{formatDate(article.createdAt)}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <div className="flex items-center gap-2 font-semibold text-gray-900">
+                  <MailIcon className="h-4 w-4 text-gray-400" />
+                  Canned responses
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full whitespace-nowrap text-left text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500">
+                    <tr>
+                      <th className="px-5 py-3 font-medium">Title</th>
+                      <th className="px-5 py-3 font-medium">Category</th>
+                      <th className="px-5 py-3 font-medium">Channel</th>
+                      <th className="px-5 py-3 font-medium">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredResponses.map((response) => (
+                      <tr key={response.id} className="hover:bg-gray-50">
+                        <td className="px-5 py-3">
+                          <div className="font-medium text-gray-900">{response.title}</div>
+                          <div className="mt-1 max-w-md truncate text-xs text-gray-500">{response.body}</div>
+                        </td>
+                        <td className="px-5 py-3 text-gray-600">{response.category ?? "-"}</td>
+                        <td className="px-5 py-3 text-gray-600">{response.channelType}</td>
+                        <td className="px-5 py-3 text-gray-500">{formatDate(response.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredResponses.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-sm text-gray-500">No canned responses match the current search.</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div className="flex items-center gap-2 font-semibold text-gray-900">
+                <PackageIcon className="h-4 w-4 text-gray-400" />
+                Product catalog
+              </div>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {filteredProducts.length === 0 ? (
+                <div className="px-5 py-10 text-center text-sm text-gray-500">No products match the current search.</div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <div key={product.id} className="px-5 py-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                        <div className="mt-1 text-xs text-gray-500">{product.status} · {formatMoney(product.unitPrice)}</div>
+                        <p className="mt-2 text-sm text-gray-700">{product.description || "No product description provided."}</p>
+                      </div>
+                      <div className="text-xs text-gray-500">{formatDate(product.createdAt)}</div>
+                    </div>
                   </div>
-                    <span
-                    className={
-                    template.enabled ?
-                    'text-gray-900 font-medium' :
-                    'text-gray-500'
-                    }>
-                    
-                      {template.enabled ? 'Yes' : 'No'}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-3 text-gray-600">{template.useCount}</td>
-                <td className="px-6 py-3 text-gray-500">
-                  {template.lastModified}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Footer Pagination */}
-      <div className="bg-white px-6 py-3 border-t border-gray-200 flex items-center justify-between shrink-0 text-sm">
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-md">
-          <button className="px-3 py-1 bg-white shadow-sm rounded text-gray-900 font-medium">
-            20
-          </button>
-          <button className="px-3 py-1 text-gray-600 hover:text-gray-900">
-            50
-          </button>
-          <button className="px-3 py-1 text-gray-600 hover:text-gray-900">
-            100
-          </button>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium">
-            Load More
-          </button>
-          <span className="text-gray-500">8 of 8</span>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 }

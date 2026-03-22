@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dala.crm.controller.AccountController;
 import com.dala.crm.controller.ActivityController;
 import com.dala.crm.controller.AiInteractionController;
+import com.dala.crm.controller.AppUserAdminController;
 import com.dala.crm.controller.AudienceSegmentController;
 import com.dala.crm.controller.AuditLogController;
 import com.dala.crm.controller.CannedResponseController;
@@ -20,6 +21,7 @@ import com.dala.crm.controller.CampaignController;
 import com.dala.crm.controller.CommerceEventController;
 import com.dala.crm.controller.ContactController;
 import com.dala.crm.controller.ConversationRecordController;
+import com.dala.crm.controller.CustomEntityController;
 import com.dala.crm.controller.DashboardController;
 import com.dala.crm.controller.HealthController;
 import com.dala.crm.controller.IdentityController;
@@ -38,6 +40,7 @@ import com.dala.crm.controller.InvoiceController;
 import com.dala.crm.dto.AccountResponse;
 import com.dala.crm.dto.ActivityResponse;
 import com.dala.crm.dto.AiInteractionDto;
+import com.dala.crm.dto.AppUserResponse;
 import com.dala.crm.dto.AudienceSegmentResponse;
 import com.dala.crm.dto.AuditLogResponse;
 import com.dala.crm.dto.CampaignDeliveryRunResponse;
@@ -46,9 +49,12 @@ import com.dala.crm.dto.CampaignResponse;
 import com.dala.crm.dto.CommerceEventResponse;
 import com.dala.crm.dto.ContactResponse;
 import com.dala.crm.dto.ConversationRecordDto;
+import com.dala.crm.dto.CustomEntityDefinitionDto;
+import com.dala.crm.dto.CustomEntityRecordDto;
 import com.dala.crm.dto.DashboardRevenueForecastResponse;
 import com.dala.crm.dto.DashboardSummaryResponse;
 import com.dala.crm.dto.IntegrationConnectionDto;
+import com.dala.crm.dto.IntegrationMarketplaceAppDto;
 import com.dala.crm.dto.KnowledgeBaseArticleResponse;
 import com.dala.crm.dto.LeadResponse;
 import com.dala.crm.dto.OpportunityResponse;
@@ -56,25 +62,33 @@ import com.dala.crm.dto.ProductResponse;
 import com.dala.crm.dto.QuoteResponse;
 import com.dala.crm.dto.ReportSnapshotDto;
 import com.dala.crm.dto.RenewalAutomationRunResponse;
+import com.dala.crm.dto.SimpleMessageResponse;
 import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.TicketSlaReportResponse;
 import com.dala.crm.dto.WorkflowDefinitionDto;
+import com.dala.crm.dto.WorkflowBuilderCatalogResponse;
+import com.dala.crm.dto.WorkflowBuilderCustomEntityOption;
 import com.dala.crm.dto.CannedResponseResponse;
 import com.dala.crm.dto.InvoiceResponse;
 import com.dala.crm.exception.GlobalExceptionHandler;
+import com.dala.crm.repo.AppUserRepository;
+import com.dala.crm.repo.TenantProfileRepository;
 import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
 import com.dala.crm.service.AccountService;
 import com.dala.crm.service.ActivityService;
 import com.dala.crm.service.AiInteractionService;
+import com.dala.crm.service.AuthService;
+import com.dala.crm.service.AppUserAdminService;
 import com.dala.crm.service.AudienceSegmentService;
 import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.CampaignService;
 import com.dala.crm.service.CommerceEventService;
 import com.dala.crm.service.ContactService;
 import com.dala.crm.service.ConversationRecordService;
+import com.dala.crm.service.CustomEntityService;
 import com.dala.crm.service.DashboardService;
 import com.dala.crm.service.IntegrationConnectionService;
 import com.dala.crm.service.KnowledgeBaseArticleService;
@@ -107,6 +121,7 @@ import org.springframework.test.web.servlet.MockMvc;
         AccountController.class,
         OpportunityController.class,
         ActivityController.class,
+        AppUserAdminController.class,
         AudienceSegmentController.class,
         AuditLogController.class,
         TimelineController.class,
@@ -121,6 +136,7 @@ import org.springframework.test.web.servlet.MockMvc;
         QuoteController.class,
         InvoiceController.class,
         ConversationRecordController.class,
+        CustomEntityController.class,
         AiInteractionController.class,
         ReportSnapshotController.class,
         TicketController.class,
@@ -131,6 +147,18 @@ class SecurityAndTenantWebLayerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private AppUserRepository appUserRepository;
+
+    @MockBean
+    private TenantProfileRepository tenantProfileRepository;
+
+    @MockBean
+    private AppUserAdminService appUserAdminService;
+
+    @MockBean
+    private AuthService authService;
 
     @MockBean
     private LeadService leadService;
@@ -185,6 +213,9 @@ class SecurityAndTenantWebLayerTest {
 
     @MockBean
     private ConversationRecordService conversationRecordService;
+
+    @MockBean
+    private CustomEntityService customEntityService;
 
     @MockBean
     private AiInteractionService aiInteractionService;
@@ -258,6 +289,7 @@ class SecurityAndTenantWebLayerTest {
                         "crm:quotes:read",
                         "crm:invoices:read",
                         "crm:commerce-events:read",
+                        "crm:custom-entities:read",
                         "crm:dashboard:read"
                 )));
     }
@@ -379,6 +411,189 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void viewerCanReadCustomEntityDefinitions() throws Exception {
+        when(customEntityService.listDefinitions()).thenReturn(List.of(
+                new CustomEntityDefinitionDto(
+                        211L,
+                        "Install Base",
+                        "install_base",
+                        "Install Bases",
+                        "{\"serialNumber\":{\"type\":\"TEXT\"},\"region\":{\"type\":\"TEXT\"}}",
+                        true,
+                        Instant.parse("2026-03-21T11:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/custom-entities")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].apiName").value("install_base"));
+    }
+
+    @Test
+    void viewerCanReadWorkspaceUsers() throws Exception {
+        when(appUserAdminService.list()).thenReturn(List.of(
+                new AppUserResponse(
+                        301L,
+                        "Takudzwa Chitsungo",
+                        "takudzwa@example.com",
+                        "ADMIN",
+                        true,
+                        Instant.parse("2026-03-21T12:00:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/users")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].email").value("takudzwa@example.com"));
+    }
+
+    @Test
+    void viewerCannotCreateWorkspaceUser() throws Exception {
+        mockMvc.perform(post("/api/v1/users")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"Platform Ops","email":"ops@example.com","password":"secret123","role":"VIEWER"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanUpdateWorkspaceUser() throws Exception {
+        when(appUserAdminService.update(org.mockito.ArgumentMatchers.eq(301L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new AppUserResponse(
+                        301L,
+                        "Takudzwa Chitsungo",
+                        "takudzwa@example.com",
+                        "VIEWER",
+                        false,
+                        Instant.parse("2026-03-21T12:00:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/users/301")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"role":"VIEWER","active":false}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("VIEWER"))
+                .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void adminCanResetWorkspaceUserPassword() throws Exception {
+        when(appUserAdminService.resetPassword(org.mockito.ArgumentMatchers.eq(301L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new AppUserResponse(
+                        301L,
+                        "Takudzwa Chitsungo",
+                        "takudzwa@example.com",
+                        "ADMIN",
+                        true,
+                        Instant.parse("2026-03-21T12:00:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/users/301/password")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"password":"newsecret123"}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("takudzwa@example.com"));
+    }
+
+    @Test
+    void viewerCannotResetWorkspaceUserPassword() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/301/password")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"password":"newsecret123"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void authenticatedUserCanChangeOwnPassword() throws Exception {
+        when(authService.changePassword(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new SimpleMessageResponse("Password updated successfully."));
+
+        mockMvc.perform(patch("/api/v1/identity/change-password")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"local-dev-pass","newPassword":"newsecret123"}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Password updated successfully."));
+    }
+
+    @Test
+    void viewerCannotUpdateWorkspaceUser() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/301")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"role":"VIEWER","active":false}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCannotCreateCustomEntityDefinition() throws Exception {
+        mockMvc.perform(post("/api/v1/custom-entities")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Install Base","apiName":"install_base","fieldSchemaJson":"{\\"serialNumber\\":{\\"type\\":\\"TEXT\\"}}","active":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCanReadCustomEntityRecords() throws Exception {
+        when(customEntityService.listRecords(211L)).thenReturn(List.of(
+                new CustomEntityRecordDto(
+                        301L,
+                        211L,
+                        "{\"serialNumber\":\"SN-1001\",\"region\":\"EMEA\"}",
+                        Instant.parse("2026-03-21T11:10:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/custom-entities/211/records")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].definitionId").value(211))
+                .andExpect(jsonPath("$[0].recordDataJson").value("{\"serialNumber\":\"SN-1001\",\"region\":\"EMEA\"}"));
+    }
+
+    @Test
+    void viewerCannotCreateCustomEntityRecord() throws Exception {
+        mockMvc.perform(post("/api/v1/custom-entities/211/records")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recordDataJson":"{\\"serialNumber\\":\\"SN-1001\\",\\"region\\":\\"EMEA\\"}"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void adminCanReadAuditLogs() throws Exception {
         when(auditLogService.getAuditLogs()).thenReturn(List.of(
                 new AuditLogResponse(
@@ -415,9 +630,13 @@ class SecurityAndTenantWebLayerTest {
                         "Lead follow-up",
                         "LEAD_CREATED",
                         null,
+                        "LEAD",
+                        null,
+                        null,
                         "CREATE_ACTIVITY",
                         "Call new lead",
                         "Reach out within one business day.",
+                        null,
                         true,
                         Instant.parse("2026-03-20T08:35:00Z")
                 )
@@ -428,6 +647,25 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].triggerType").value("LEAD_CREATED"));
+    }
+
+    @Test
+    void viewerCanReadWorkflowBuilderCatalog() throws Exception {
+        when(workflowDefinitionService.getBuilderCatalog()).thenReturn(
+                new WorkflowBuilderCatalogResponse(
+                        List.of("LEAD_CREATED", "CUSTOM_ENTITY_RECORD_CREATED"),
+                        List.of("CREATE_ACTIVITY", "SEND_NOTIFICATION"),
+                        List.of("LEAD", "CUSTOM_ENTITY"),
+                        List.of(new WorkflowBuilderCustomEntityOption(211L, "install_base", "Install Base"))
+                )
+        );
+
+        mockMvc.perform(get("/api/v1/workflows/builder/catalog")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.triggerTypes", hasItems("LEAD_CREATED", "CUSTOM_ENTITY_RECORD_CREATED")))
+                .andExpect(jsonPath("$.customEntities[0].apiName").value("install_base"));
     }
 
     @Test
@@ -672,6 +910,8 @@ class SecurityAndTenantWebLayerTest {
                         "WhatsApp Cloud",
                         "WHATSAPP",
                         "META",
+                        "whatsapp-cloud",
+                        "1.0.0",
                         "CONNECTED",
                         Instant.parse("2026-03-20T08:40:00Z")
                 )
@@ -682,6 +922,69 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].channelType").value("WHATSAPP"));
+    }
+
+    @Test
+    void viewerCanReadMarketplaceCatalog() throws Exception {
+        when(integrationConnectionService.listMarketplaceApps()).thenReturn(List.of(
+                new IntegrationMarketplaceAppDto(
+                        "whatsapp-cloud",
+                        "WhatsApp Cloud",
+                        "MESSAGING",
+                        "WHATSAPP",
+                        "META",
+                        "1.0.0",
+                        "AVAILABLE",
+                        "Deliver tenant-scoped WhatsApp conversations through Meta Cloud APIs.",
+                        List.of("OUTBOUND_MESSAGES", "INBOUND_WEBHOOKS")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/integrations/marketplace")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].appKey").value("whatsapp-cloud"))
+                .andExpect(jsonPath("$[0].category").value("MESSAGING"));
+    }
+
+    @Test
+    void adminCanInstallMarketplaceApp() throws Exception {
+        when(integrationConnectionService.installMarketplaceApp(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new IntegrationConnectionDto(
+                        72L,
+                        "WhatsApp Cloud",
+                        "WHATSAPP",
+                        "META",
+                        "whatsapp-cloud",
+                        "1.0.0",
+                        "CONNECTED",
+                        Instant.parse("2026-03-21T11:15:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/integrations/marketplace/install")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"appKey":"whatsapp-cloud","connectionName":"WhatsApp Cloud"}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.marketplaceAppKey").value("whatsapp-cloud"))
+                .andExpect(jsonPath("$.status").value("CONNECTED"));
+    }
+
+    @Test
+    void viewerCannotInstallMarketplaceApp() throws Exception {
+        mockMvc.perform(post("/api/v1/integrations/marketplace/install")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"appKey":"whatsapp-cloud","connectionName":"WhatsApp Cloud"}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test

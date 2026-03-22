@@ -6,8 +6,52 @@ export interface AuthSession {
 }
 
 export interface IdentityResponse {
+  tenantId: string | null;
+  tenantName: string | null;
+  fullName: string;
+  email: string;
   username: string;
   authorities: string[];
+}
+
+export interface AuthSessionResponse {
+  tenantId: string;
+  tenantName: string;
+  fullName: string;
+  email: string;
+  authorities: string[];
+}
+
+export interface AppUserRecord {
+  id: number;
+  fullName: string;
+  email: string;
+  role: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface IntegrationConnectionRecord {
+  id: number;
+  name: string;
+  channelType: string;
+  provider: string;
+  marketplaceAppKey: string | null;
+  marketplaceVersion: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface IntegrationMarketplaceAppRecord {
+  appKey: string;
+  name: string;
+  category: string;
+  channelType: string;
+  provider: string;
+  version: string;
+  status: string;
+  summary: string;
+  capabilities: string[];
 }
 
 export interface LeadRecord {
@@ -92,6 +136,70 @@ export interface CommunicationRecord {
   createdAt: string;
 }
 
+export interface AudienceSegmentRecord {
+  id: number;
+  name: string;
+  sourceType: string;
+  criteria: string;
+  estimatedSize: number | null;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface CampaignRecord {
+  id: number;
+  name: string;
+  channelType: string;
+  status: string;
+  audienceSegmentId: number;
+  audienceSegmentName: string;
+  subject: string;
+  body: string;
+  scheduledAt: string | null;
+  deliveredCount: number;
+  lastExecutedAt: string | null;
+  createdAt: string;
+}
+
+export interface ProductRecord {
+  id: number;
+  name: string;
+  description: string | null;
+  unitPrice: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface ReportSnapshotRecord {
+  id: number;
+  name: string;
+  reportType: string;
+  deliveryChannel: string;
+  scheduleCadence: string;
+  status: string;
+  snapshotPayload: string;
+  generatedAt: string;
+  createdAt: string;
+}
+
+export interface KnowledgeBaseArticleRecord {
+  id: number;
+  title: string;
+  category: string;
+  body: string;
+  published: boolean;
+  createdAt: string;
+}
+
+export interface CannedResponseRecord {
+  id: number;
+  title: string;
+  channelType: string;
+  category: string | null;
+  body: string;
+  createdAt: string;
+}
+
 export interface QuoteRecord {
   id: number;
   accountId: number;
@@ -112,6 +220,64 @@ export interface InvoiceRecord {
   status: string;
   dueAt: string | null;
   createdAt: string;
+}
+
+export interface AiInteractionRecord {
+  id: number;
+  name: string;
+  operationType: string;
+  sourceType: string;
+  sourceId: number | null;
+  promptText: string;
+  outputText: string;
+  modelName: string;
+  createdAt: string;
+}
+
+export interface CustomEntityDefinitionRecord {
+  id: number;
+  name: string;
+  apiName: string;
+  pluralLabel: string | null;
+  fieldSchemaJson: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface CustomEntityRecordItem {
+  id: number;
+  definitionId: number;
+  recordDataJson: string;
+  createdAt: string;
+}
+
+export interface WorkflowDefinitionRecord {
+  id: number;
+  name: string;
+  triggerType: string;
+  triggerFilter: string | null;
+  targetEntityType: string | null;
+  targetEntityApiName: string | null;
+  conditionsJson: string | null;
+  actionType: string;
+  actionSubject: string;
+  actionDetails: string | null;
+  actionConfigJson: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface WorkflowBuilderCustomEntityOption {
+  definitionId: number;
+  apiName: string;
+  name: string;
+}
+
+export interface WorkflowBuilderCatalog {
+  triggerTypes: string[];
+  actionTypes: string[];
+  targetEntityTypes: string[];
+  customEntities: WorkflowBuilderCustomEntityOption[];
 }
 
 export interface DashboardSummaryResponse {
@@ -142,6 +308,12 @@ export interface CrmSnapshot {
   identity: IdentityResponse | null;
   summary: DashboardSummaryResponse | null;
   forecast: DashboardForecastResponse | null;
+  integrations: IntegrationConnectionRecord[];
+  marketplaceApps: IntegrationMarketplaceAppRecord[];
+  workflowDefinitions: WorkflowDefinitionRecord[];
+  workflowCatalog: WorkflowBuilderCatalog | null;
+  customEntityDefinitions: CustomEntityDefinitionRecord[];
+  users: AppUserRecord[];
   leads: LeadRecord[];
   contacts: ContactRecord[];
   accounts: AccountRecord[];
@@ -150,6 +322,13 @@ export interface CrmSnapshot {
   activities: ActivityRecord[];
   auditLogs: AuditLogRecord[];
   communications: CommunicationRecord[];
+  audienceSegments: AudienceSegmentRecord[];
+  campaigns: CampaignRecord[];
+  products: ProductRecord[];
+  reportSnapshots: ReportSnapshotRecord[];
+  knowledgeArticles: KnowledgeBaseArticleRecord[];
+  cannedResponses: CannedResponseRecord[];
   quotes: QuoteRecord[];
   invoices: InvoiceRecord[];
+  aiInteractions: AiInteractionRecord[];
 }

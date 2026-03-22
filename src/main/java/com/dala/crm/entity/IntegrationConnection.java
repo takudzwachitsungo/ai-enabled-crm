@@ -31,6 +31,12 @@ public class IntegrationConnection {
     @Column(nullable = false, length = 80)
     private String provider;
 
+    @Column(length = 80)
+    private String marketplaceAppKey;
+
+    @Column(length = 40)
+    private String marketplaceVersion;
+
     @Column(nullable = false, length = 40)
     private String status;
 
@@ -75,6 +81,22 @@ public class IntegrationConnection {
 
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+
+    public String getMarketplaceAppKey() {
+        return marketplaceAppKey;
+    }
+
+    public void setMarketplaceAppKey(String marketplaceAppKey) {
+        this.marketplaceAppKey = marketplaceAppKey;
+    }
+
+    public String getMarketplaceVersion() {
+        return marketplaceVersion;
+    }
+
+    public void setMarketplaceVersion(String marketplaceVersion) {
+        this.marketplaceVersion = marketplaceVersion;
     }
 
     public String getStatus() {

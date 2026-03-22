@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ReceiptTextIcon, ChevronDownIcon, BadgeDollarSignIcon } from 'lucide-react';
-import { InvoiceRecord, QuoteRecord } from '../types/crm';
+import { AuthSession, InvoiceRecord, QuoteRecord } from '../types/crm';
 import { StatusBadge } from './ui/StatusBadge';
+import { convertQuoteToInvoice, createQuote, updateQuoteStatus } from '../lib/api';
 
 interface CommerceListProps {
   quotes?: QuoteRecord[];
   invoices?: InvoiceRecord[];
+  session: AuthSession;
+  onRefresh: () => Promise<void>;
 }
 
 function mapCommerceStatus(status: string) {
@@ -34,7 +37,65 @@ function dateText(value: string | null) {
   return value ? new Date(value).toLocaleDateString() : '-';
 }
 
-export function CommerceList({ quotes = [], invoices = [] }: CommerceListProps) {
+export function CommerceList({ quotes = [], invoices = [], session, onRefresh }: CommerceListProps) {
+  const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(quotes[0]?.id ?? null);
+  const [statusValue, setStatusValue] = useState('APPROVED');
+  const [query, setQuery] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState<'convert' | 'status' | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({ accountId: '', name: '', amount: '', status: 'DRAFT', validUntil: '' });
+  const selectedQuote = quotes.find((quote) => quote.id === selectedQuoteId) ?? quotes[0] ?? null;
+  const filteredQuotes = quotes.filter((quote) =>
+    [quote.name, quote.accountName, quote.status, String(quote.amount)]
+      .join(' ')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+  const filteredInvoices = invoices.filter((invoice) =>
+    [invoice.invoiceNumber, invoice.accountName, invoice.status, String(invoice.amount)]
+      .join(' ')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+
+  async function handleConvert() {
+    if (!selectedQuote) {
+      return;
+    }
+    setPending('convert');
+    setMessage(null);
+    try {
+      await convertQuoteToInvoice(session, selectedQuote.id);
+      setMessage('Quote converted to invoice.');
+      await onRefresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to convert quote.');
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function handleStatusUpdate() {
+    if (!selectedQuote) {
+      return;
+    }
+    setPending('status');
+    setMessage(null);
+    try {
+      await updateQuoteStatus(session, selectedQuote.id, {
+        status: statusValue,
+        note: 'Updated from UI',
+      });
+      setMessage('Quote status updated.');
+      await onRefresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to update quote.');
+    } finally {
+      setPending(null);
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f8f9fa] overflow-hidden">
       <div className="bg-white px-4 py-4 border-b border-gray-200 flex flex-col gap-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between shrink-0">
@@ -46,33 +107,82 @@ export function CommerceList({ quotes = [], invoices = [] }: CommerceListProps) 
             <ChevronDownIcon className="w-4 h-4 text-gray-400" />
           </button>
         </div>
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-500">
-          Quotes and invoices
+        <button onClick={() => setCreating((value) => !value)} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-white">
+          {creating ? 'Close quote form' : 'New quote'}
+        </button>
+      </div>
+
+      {creating ? (
+        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
+          <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr_0.8fr_0.7fr_1fr_auto]">
+            <input value={createForm.accountId} onChange={(e) => setCreateForm((c) => ({ ...c, accountId: e.target.value }))} placeholder="Account ID" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <input value={createForm.name} onChange={(e) => setCreateForm((c) => ({ ...c, name: e.target.value }))} placeholder="Quote name" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <input value={createForm.amount} onChange={(e) => setCreateForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Amount" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <select value={createForm.status} onChange={(e) => setCreateForm((c) => ({ ...c, status: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><option value="DRAFT">Draft</option><option value="APPROVED">Approved</option></select>
+            <input value={createForm.validUntil} onChange={(e) => setCreateForm((c) => ({ ...c, validUntil: e.target.value }))} type="date" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+            <button
+              onClick={async () => {
+                setPending('status');
+                setMessage(null);
+                try {
+                  await createQuote(session, {
+                    accountId: Number(createForm.accountId),
+                    name: createForm.name,
+                    amount: Number(createForm.amount),
+                    status: createForm.status,
+                    validUntil: createForm.validUntil || null,
+                  });
+                  setCreateForm({ accountId: '', name: '', amount: '', status: 'DRAFT', validUntil: '' });
+                  setCreating(false);
+                  setMessage('Quote created successfully.');
+                  await onRefresh();
+                } catch (error) {
+                  setMessage(error instanceof Error ? error.message : 'Unable to create quote.');
+                } finally {
+                  setPending(null);
+                }
+              }}
+              disabled={pending !== null || !createForm.accountId || !createForm.name || !createForm.amount}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400"
+            >
+              {pending === 'status' ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         </div>
+      ) : null}
+
+      <div className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search quotes and invoices"
+          className="w-full max-w-md rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6 space-y-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="text-sm text-gray-500">Open Quotes</div>
-            <div className="mt-2 text-2xl font-semibold text-gray-900">{quotes.length}</div>
+            <div className="mt-2 text-2xl font-semibold text-gray-900">{filteredQuotes.length}</div>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="text-sm text-gray-500">Invoices</div>
-            <div className="mt-2 text-2xl font-semibold text-gray-900">{invoices.length}</div>
+            <div className="mt-2 text-2xl font-semibold text-gray-900">{filteredInvoices.length}</div>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="text-sm text-gray-500">Tracked Value</div>
             <div className="mt-2 text-2xl font-semibold text-gray-900">
               {money(
-                quotes.reduce((sum, quote) => sum + quote.amount, 0) +
-                  invoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+                filteredQuotes.reduce((sum, quote) => sum + quote.amount, 0) +
+                  filteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0),
               )}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div className="font-semibold text-gray-900">Quotes</div>
@@ -90,8 +200,8 @@ export function CommerceList({ quotes = [], invoices = [] }: CommerceListProps) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {quotes.map((quote) => (
-                    <tr key={quote.id} className="hover:bg-gray-50">
+                  {filteredQuotes.map((quote) => (
+                    <tr key={quote.id} className={`hover:bg-gray-50 cursor-pointer ${selectedQuote?.id === quote.id ? 'bg-gray-50' : ''}`} onClick={() => setSelectedQuoteId(quote.id)}>
                       <td className="px-5 py-3 font-medium text-gray-900">{quote.name}</td>
                       <td className="px-5 py-3 text-gray-600">{quote.accountName}</td>
                       <td className="px-5 py-3 text-gray-900">{money(quote.amount)}</td>
@@ -101,6 +211,7 @@ export function CommerceList({ quotes = [], invoices = [] }: CommerceListProps) 
                   ))}
                 </tbody>
               </table>
+              {!filteredQuotes.length ? <div className="px-5 py-10 text-center text-sm text-gray-500">No quotes match the current search yet.</div> : null}
             </div>
           </div>
 
@@ -121,7 +232,7 @@ export function CommerceList({ quotes = [], invoices = [] }: CommerceListProps) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {invoices.map((invoice) => (
+                  {filteredInvoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-gray-50">
                       <td className="px-5 py-3 font-medium text-gray-900">{invoice.invoiceNumber}</td>
                       <td className="px-5 py-3 text-gray-600">{invoice.accountName}</td>
@@ -132,7 +243,53 @@ export function CommerceList({ quotes = [], invoices = [] }: CommerceListProps) 
                   ))}
                 </tbody>
               </table>
+              {!filteredInvoices.length ? <div className="px-5 py-10 text-center text-sm text-gray-500">No invoices match the current search yet.</div> : null}
             </div>
+          </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 font-semibold text-gray-900">Quote actions</div>
+            {selectedQuote ? (
+              <div className="space-y-5">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{selectedQuote.name}</div>
+                  <div className="mt-1 text-sm text-gray-500">{selectedQuote.accountName} · {money(selectedQuote.amount)}</div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Quote status</label>
+                  <select
+                    value={statusValue}
+                    onChange={(event) => setStatusValue(event.target.value)}
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                  <button
+                    onClick={handleStatusUpdate}
+                    className="w-full rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100"
+                    disabled={pending !== null}
+                  >
+                    {pending === 'status' ? 'Updating...' : 'Update Quote'}
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleConvert}
+                  className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400"
+                  disabled={pending !== null}
+                >
+                  {pending === 'convert' ? 'Converting...' : 'Convert To Invoice'}
+                </button>
+
+                {message ? <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700">{message}</div> : null}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">Select a quote to run commerce actions.</div>
+            )}
           </div>
         </div>
       </div>
