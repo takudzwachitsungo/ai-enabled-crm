@@ -1,5 +1,5 @@
 import React, { FormEvent, useMemo, useState } from "react";
-import { KeyRoundIcon, LogInIcon, ShieldCheckIcon } from "lucide-react";
+import { KeyRoundIcon, LogInIcon } from "lucide-react";
 import { AuthSession } from "../types/crm";
 
 interface AuthScreenProps {
@@ -75,7 +75,7 @@ export function AuthScreen({
       baseUrl: loginForm.baseUrl.trim().replace(/\/$/, ""),
       tenantId: loginForm.tenantId.trim().toLowerCase(),
       username: loginForm.username.trim().toLowerCase(),
-      password: loginForm.password,
+      password: loginForm.password ?? "",
     });
   };
 
@@ -99,24 +99,31 @@ export function AuthScreen({
     signupForm.confirmPassword.length > 0 &&
     signupForm.password !== signupForm.confirmPassword;
 
+  const inputClassName =
+    "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white";
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa] px-4 py-8 sm:px-6">
-      <div className="w-full max-w-sm rounded-[24px] border border-gray-200 bg-white p-6 shadow-xl shadow-gray-200/60 sm:p-7">
-        <div className="mb-7 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-500 text-white">
-            <ShieldCheckIcon className="h-5 w-5" />
+    <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa] px-4 py-6 sm:px-6">
+      <div className="w-full max-w-[340px] rounded-2xl border border-gray-200 bg-white p-5 shadow-xl shadow-gray-200/60 sm:p-6">
+        {/* Logo & title */}
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white">
+            A
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">AI CRM</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {mode === "login" ? "Sign in to your workspace" : "Create a new workspace"}
+          <h1 className="text-lg font-semibold text-gray-900">Alad CRM</h1>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {mode === "login"
+              ? "Sign in to your workspace"
+              : "Create a new workspace"}
           </p>
         </div>
 
-        <div className="mb-6 flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+        {/* Login / Signup toggle */}
+        <div className="mb-4 flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               mode === "login" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
             }`}
           >
@@ -124,10 +131,8 @@ export function AuthScreen({
           </button>
           <button
             type="button"
-            onClick={() => {
-              setMode("signup");
-            }}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            onClick={() => setMode("signup")}
+            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               mode === "signup" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
             }`}
           >
@@ -135,41 +140,42 @@ export function AuthScreen({
           </button>
         </div>
 
+        {/* Login form */}
         {mode === "login" ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Workspace ID</span>
+              <span className="mb-1 block text-xs font-medium text-gray-600">Workspace ID</span>
               <input
                 value={loginForm.tenantId}
                 onChange={updateLoginField("tenantId")}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
-                placeholder="northwind-services"
+                className={inputClassName}
+                placeholder="your-workspace"
               />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Email</span>
+              <span className="mb-1 block text-xs font-medium text-gray-600">Email</span>
               <input
                 value={loginForm.username}
                 onChange={updateLoginField("username")}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
+                className={inputClassName}
                 placeholder="you@company.com"
               />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Password</span>
+              <span className="mb-1 block text-xs font-medium text-gray-600">Password</span>
               <input
                 type="password"
-                value={loginForm.password}
+                value={loginForm.password ?? ""}
                 onChange={updateLoginField("password")}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
+                className={inputClassName}
                 placeholder="Enter your password"
               />
             </label>
 
             {error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                 {error}
               </div>
             ) : null}
@@ -177,84 +183,85 @@ export function AuthScreen({
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               <LogInIcon className="h-4 w-4" />
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
         ) : (
+          /* Signup form */
           <form onSubmit={handleSignup} className="space-y-3.5">
             <div className="space-y-3.5">
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">Company name</span>
+                <span className="mb-1 block text-xs font-medium text-gray-600">Company name</span>
                 <input
                   value={signupForm.companyName}
                   onChange={updateSignupField("companyName")}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
-                  placeholder="Northwind Services"
+                  className={inputClassName}
+                  placeholder="Acme Inc"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">Workspace ID</span>
+                <span className="mb-1 block text-xs font-medium text-gray-600">Workspace ID</span>
                 <input
                   value={signupForm.tenantId}
                   onChange={updateSignupField("tenantId")}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
-                  placeholder={tenantSuggestion || "northwind-services"}
+                  className={inputClassName}
+                  placeholder={tenantSuggestion || "acme-inc"}
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">Full name</span>
+                <span className="mb-1 block text-xs font-medium text-gray-600">Full name</span>
                 <input
                   value={signupForm.fullName}
                   onChange={updateSignupField("fullName")}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
-                  placeholder="Takudzwa Chitsungo"
+                  className={inputClassName}
+                  placeholder="Jane Doe"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">Email</span>
+                <span className="mb-1 block text-xs font-medium text-gray-600">Email</span>
                 <input
                   value={signupForm.email}
                   onChange={updateSignupField("email")}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
-                  placeholder="takudzwa@company.com"
+                  className={inputClassName}
+                  placeholder="jane@company.com"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">Password</span>
+                <span className="mb-1 block text-xs font-medium text-gray-600">Password</span>
                 <input
                   type="password"
                   value={signupForm.password}
                   onChange={updateSignupField("password")}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
+                  className={inputClassName}
                   placeholder="At least 8 characters"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">Confirm password</span>
+                <span className="mb-1 block text-xs font-medium text-gray-600">Confirm password</span>
                 <input
                   type="password"
                   value={signupForm.confirmPassword}
                   onChange={updateSignupField("confirmPassword")}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
+                  className={inputClassName}
                   placeholder="Re-enter password"
                 />
               </label>
             </div>
 
             {error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                 {error}
               </div>
             ) : signupPasswordMismatch ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                 Password confirmation does not match.
               </div>
             ) : null}
@@ -270,7 +277,7 @@ export function AuthScreen({
                 !signupForm.email ||
                 !signupForm.password
               }
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               <KeyRoundIcon className="h-4 w-4" />
               {loading ? "Creating workspace..." : "Create workspace"}

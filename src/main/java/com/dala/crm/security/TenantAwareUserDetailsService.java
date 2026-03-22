@@ -35,25 +35,28 @@ public class TenantAwareUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserDetails demoUser = demoUser(username);
-        if (demoUser != null) {
-            return demoUser;
-        }
-
         String tenantId = resolveCurrentTenantId();
         if (tenantId == null || tenantId.isBlank() || appUserRepository == null) {
             throw new UsernameNotFoundException("User not found");
+        }
+
+        return loadTenantPrincipal(tenantId, username);
+    }
+
+    public TenantUserPrincipal loadTenantPrincipal(String tenantId, String username) throws UsernameNotFoundException {
+        TenantUserPrincipal demoPrincipal = demoUser(tenantId, username);
+        if (demoPrincipal != null) {
+            return demoPrincipal;
         }
 
         AppUser appUser = appUserRepository.findByTenantIdAndEmailIgnoreCase(tenantId, username)
                 .filter(AppUser::isActive)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String tenantName = resolveTenantName(tenantId);
         return new TenantUserPrincipal(
                 appUser.getId(),
                 tenantId,
-                tenantName,
+                resolveTenantName(tenantId),
                 appUser.getFullName(),
                 appUser.getEmail(),
                 appUser.getPasswordHash(),
@@ -97,18 +100,32 @@ public class TenantAwareUserDetailsService implements UserDetailsService {
         return tenantProfile.map(TenantProfile::getName).orElse(tenantId);
     }
 
-    private UserDetails demoUser(String username) {
+    private TenantUserPrincipal demoUser(String tenantId, String username) {
+        if (!"tenant-demo".equalsIgnoreCase(tenantId)) {
+            return null;
+        }
+
         if ("local-dev".equalsIgnoreCase(username)) {
-            return User.withUsername("local-dev")
-                    .password("{noop}local-dev-pass")
-                    .authorities(adminAuthorities())
-                    .build();
+            return new TenantUserPrincipal(
+                    0L,
+                    tenantId,
+                    resolveTenantName(tenantId),
+                    "Local Developer",
+                    "local-dev",
+                    "{noop}local-dev-pass",
+                    adminAuthorities()
+            );
         }
         if ("local-view".equalsIgnoreCase(username)) {
-            return User.withUsername("local-view")
-                    .password("{noop}local-view-pass")
-                    .authorities(viewerAuthorities())
-                    .build();
+            return new TenantUserPrincipal(
+                    1L,
+                    tenantId,
+                    resolveTenantName(tenantId),
+                    "Local Viewer",
+                    "local-view",
+                    "{noop}local-view-pass",
+                    viewerAuthorities()
+            );
         }
         return null;
     }

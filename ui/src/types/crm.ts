@@ -2,7 +2,10 @@ export interface AuthSession {
   baseUrl: string;
   tenantId: string;
   username: string;
-  password: string;
+  password?: string;
+  accessToken?: string;
+  tokenType?: string;
+  expiresAt?: string;
 }
 
 export interface IdentityResponse {
@@ -20,6 +23,9 @@ export interface AuthSessionResponse {
   fullName: string;
   email: string;
   authorities: string[];
+  accessToken: string | null;
+  tokenType: string | null;
+  expiresAt: string | null;
 }
 
 export interface AppUserRecord {

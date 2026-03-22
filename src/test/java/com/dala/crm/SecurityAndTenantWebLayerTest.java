@@ -79,8 +79,11 @@ import com.dala.crm.entity.TenantProfile;
 import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.repo.AppUserRepository;
 import com.dala.crm.repo.TenantProfileRepository;
+import com.dala.crm.security.JwtAuthenticationFilter;
+import com.dala.crm.security.JwtTokenService;
 import com.dala.crm.security.SecurityConfig;
 import com.dala.crm.security.TenantFilter;
+import com.dala.crm.security.TenantUserPrincipal;
 import com.dala.crm.service.AccountService;
 import com.dala.crm.service.ActivityService;
 import com.dala.crm.service.AiInteractionService;
@@ -149,11 +152,20 @@ import org.springframework.test.web.servlet.MockMvc;
         SlaPolicyController.class,
         TenantProfileController.class
 })
-@Import({SecurityConfig.class, TenantFilter.class, GlobalExceptionHandler.class})
+@Import({
+        SecurityConfig.class,
+        TenantFilter.class,
+        JwtAuthenticationFilter.class,
+        JwtTokenService.class,
+        GlobalExceptionHandler.class
+})
 class SecurityAndTenantWebLayerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private JwtTokenService jwtTokenService;
 
     @MockBean
     private AppUserRepository appUserRepository;
@@ -333,6 +345,95 @@ class SecurityAndTenantWebLayerTest {
                 .andExpect(jsonPath("$.tenantId").value("workspace-alpha"))
                 .andExpect(jsonPath("$.tenantName").value("Workspace Alpha"))
                 .andExpect(jsonPath("$.email").value("admin@workspace-alpha.com"));
+    }
+
+    @Test
+    void tenantWorkspaceUserCanAuthenticateWithBearerToken() throws Exception {
+        AppUser appUser = new AppUser();
+        appUser.setId(901L);
+        appUser.setTenantId("workspace-alpha");
+        appUser.setEmail("admin@workspace-alpha.com");
+        appUser.setFullName("Workspace Admin");
+        appUser.setPasswordHash("{noop}secret123");
+        appUser.setRole("ADMIN");
+        appUser.setActive(true);
+        appUser.setCreatedAt(Instant.parse("2026-03-22T08:00:00Z"));
+
+        TenantProfile tenantProfile = new TenantProfile();
+        tenantProfile.setId(901L);
+        tenantProfile.setTenantId("workspace-alpha");
+        tenantProfile.setName("Workspace Alpha");
+
+        when(appUserRepository.findByTenantIdAndEmailIgnoreCase("workspace-alpha", "admin@workspace-alpha.com"))
+                .thenReturn(Optional.of(appUser));
+        when(tenantProfileRepository.findByTenantIdIgnoreCase("workspace-alpha"))
+                .thenReturn(Optional.of(tenantProfile));
+
+        String accessToken = jwtTokenService.issueAccessToken(
+                new TenantUserPrincipal(
+                        901L,
+                        "workspace-alpha",
+                        "Workspace Alpha",
+                        "Workspace Admin",
+                        "admin@workspace-alpha.com",
+                        "{noop}secret123",
+                        List.copyOf(new com.dala.crm.security.TenantAwareUserDetailsService(
+                                appUserRepository,
+                                tenantProfileRepository
+                        ).authoritiesForRole("ADMIN"))
+                )
+        ).value();
+
+        mockMvc.perform(get("/api/v1/identity/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenantId").value("workspace-alpha"))
+                .andExpect(jsonPath("$.tenantName").value("Workspace Alpha"))
+                .andExpect(jsonPath("$.email").value("admin@workspace-alpha.com"));
+    }
+
+    @Test
+    void bearerTokenWithMismatchedTenantHeaderIsRejected() throws Exception {
+        AppUser appUser = new AppUser();
+        appUser.setId(901L);
+        appUser.setTenantId("workspace-alpha");
+        appUser.setEmail("admin@workspace-alpha.com");
+        appUser.setFullName("Workspace Admin");
+        appUser.setPasswordHash("{noop}secret123");
+        appUser.setRole("ADMIN");
+        appUser.setActive(true);
+        appUser.setCreatedAt(Instant.parse("2026-03-22T08:00:00Z"));
+
+        TenantProfile tenantProfile = new TenantProfile();
+        tenantProfile.setId(901L);
+        tenantProfile.setTenantId("workspace-alpha");
+        tenantProfile.setName("Workspace Alpha");
+
+        when(appUserRepository.findByTenantIdAndEmailIgnoreCase("workspace-alpha", "admin@workspace-alpha.com"))
+                .thenReturn(Optional.of(appUser));
+        when(tenantProfileRepository.findByTenantIdIgnoreCase("workspace-alpha"))
+                .thenReturn(Optional.of(tenantProfile));
+
+        String accessToken = jwtTokenService.issueAccessToken(
+                new TenantUserPrincipal(
+                        901L,
+                        "workspace-alpha",
+                        "Workspace Alpha",
+                        "Workspace Admin",
+                        "admin@workspace-alpha.com",
+                        "{noop}secret123",
+                        List.copyOf(new com.dala.crm.security.TenantAwareUserDetailsService(
+                                appUserRepository,
+                                tenantProfileRepository
+                        ).authoritiesForRole("ADMIN"))
+                )
+        ).value();
+
+        mockMvc.perform(get("/api/v1/identity/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header(TenantFilter.TENANT_HEADER, "workspace-beta"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Tenant header does not match the authenticated session."));
     }
 
     @Test

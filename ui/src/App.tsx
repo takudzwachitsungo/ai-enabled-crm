@@ -21,9 +21,10 @@ import { loadCrmSnapshot, loginWorkspace, registerWorkspace } from "./lib/api";
 import { AuthSession, CrmSnapshot } from "./types/crm";
 
 const STORAGE_KEY = "ai-enabled-crm-ui-session";
+const DEFAULT_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 const DEFAULT_SESSION: AuthSession = {
-  baseUrl: "http://localhost:8080",
+  baseUrl: DEFAULT_BASE_URL,
   tenantId: "tenant-demo",
   username: "local-dev",
   password: "local-dev-pass",
@@ -107,12 +108,20 @@ export function App() {
     setError(null);
 
     try {
-      await loginWorkspace(nextSession.baseUrl, {
+      const authSession = await loginWorkspace(nextSession.baseUrl, {
         tenantId: nextSession.tenantId,
         email: nextSession.username,
         password: nextSession.password,
       });
-      await connect(nextSession);
+      await connect({
+        baseUrl: nextSession.baseUrl,
+        tenantId: authSession.tenantId,
+        username: authSession.email,
+        password: authSession.accessToken ? undefined : nextSession.password,
+        accessToken: authSession.accessToken ?? undefined,
+        tokenType: authSession.tokenType ?? undefined,
+        expiresAt: authSession.expiresAt ?? undefined,
+      });
     } catch (err) {
       setSnapshot(null);
       setError(err instanceof Error ? err.message : "Unable to sign in to the workspace.");
@@ -132,12 +141,14 @@ export function App() {
     setError(null);
 
     try {
-      await registerWorkspace(payload.baseUrl, payload);
+      const authSession = await registerWorkspace(payload.baseUrl, payload);
       await connect({
         baseUrl: payload.baseUrl,
-        tenantId: payload.tenantId,
-        username: payload.email,
-        password: payload.password,
+        tenantId: authSession.tenantId,
+        username: authSession.email,
+        accessToken: authSession.accessToken ?? undefined,
+        tokenType: authSession.tokenType ?? undefined,
+        expiresAt: authSession.expiresAt ?? undefined,
       });
     } catch (err) {
       setSnapshot(null);
@@ -297,7 +308,7 @@ export function App() {
         <div className="border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-900">AI CRM</div>
+              <div className="text-sm font-semibold text-gray-900">Alad CRM</div>
               <div className="text-xs text-gray-500">
                 {displayTenant} · {displayUser}
               </div>
@@ -328,30 +339,20 @@ export function App() {
                 {knownViews
                   .filter((view) => view !== "lead-detail")
                   .map((view) => {
-                    const label =
-                      view === "deals"
-                        ? "Opportunities"
-                        : view === "organizations"
-                          ? "Accounts"
-                          : view === "tickets"
-                            ? "Tickets"
-                            : view === "tasks"
-                              ? "Activities"
-                              : view === "call-logs"
-                                ? "Communications"
-                                : view === "commerce"
-                                  ? "Commerce"
-                                  : view === "platform"
-                                    ? "Platform"
-                                    : view === "ai-workspace"
-                                      ? "AI Workspace"
-                                      : view === "notifications"
-                                        ? "Campaigns"
-                                        : view === "email-templates"
-                                          ? "Library"
-                                          : view === "notes"
-                                            ? "Audit Notes"
-                                            : view.charAt(0).toUpperCase() + view.slice(1).replace("-", " ");
+                    const labelMap: Record<string, string> = {
+                      deals: "Opportunities",
+                      organizations: "Accounts",
+                      tickets: "Tickets",
+                      tasks: "Activities",
+                      "call-logs": "Communications",
+                      commerce: "Commerce",
+                      platform: "Settings",
+                      "ai-workspace": "AI Workspace",
+                      notifications: "Campaigns",
+                      "email-templates": "Knowledge Base",
+                      notes: "Audit Log",
+                    };
+                    const label = labelMap[view] ?? view.charAt(0).toUpperCase() + view.slice(1).replace("-", " ");
                     const active =
                       currentView === view || (currentView === "lead-detail" && view === "leads");
 

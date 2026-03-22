@@ -2,6 +2,7 @@ package com.dala.crm.security;
 
 import com.dala.crm.repo.AppUserRepository;
 import com.dala.crm.repo.TenantProfileRepository;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -34,10 +35,27 @@ public class SecurityConfig {
     }
 
     @Bean
+    public FilterRegistrationBean<TenantFilter> tenantFilterRegistration(TenantFilter tenantFilter) {
+        FilterRegistrationBean<TenantFilter> registration = new FilterRegistrationBean<>(tenantFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
+            JwtAuthenticationFilter jwtAuthenticationFilter
+    ) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(jwtAuthenticationFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             TenantAwareUserDetailsService userDetailsService,
             PasswordEncoder passwordEncoder,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
             TenantFilter tenantFilter
     ) throws Exception {
         AuthenticationManagerBuilder authenticationManagerBuilder =
@@ -51,7 +69,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/health/**", "/actuator/health", "/api/public/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(tenantFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAfter(tenantFilter, JwtAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();

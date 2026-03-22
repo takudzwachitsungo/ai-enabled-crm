@@ -10,6 +10,9 @@ public record AuthSessionResponse(
         String tenantName,
         String fullName,
         String email,
-        List<String> authorities
+        List<String> authorities,
+        String accessToken,
+        String tokenType,
+        String expiresAt
 ) {
 }

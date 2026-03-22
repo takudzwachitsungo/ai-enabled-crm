@@ -32,7 +32,20 @@ import {
 } from "../types/crm";
 
 function authHeader(session: AuthSession) {
-  return `Basic ${btoa(`${session.username}:${session.password}`)}`;
+  if (session.accessToken) {
+    return `${session.tokenType ?? "Bearer"} ${session.accessToken}`;
+  }
+  if (session.password) {
+    return `Basic ${btoa(`${session.username}:${session.password}`)}`;
+  }
+  throw new Error("No valid session credentials are available.");
+}
+
+function authHeaders(session: AuthSession) {
+  return {
+    Authorization: authHeader(session),
+    "X-Tenant-Id": session.tenantId,
+  };
 }
 
 async function requestPublicJson<T>(baseUrl: string, path: string, body: unknown): Promise<T> {
@@ -62,10 +75,7 @@ async function requestPublicJson<T>(baseUrl: string, path: string, body: unknown
 
 async function requestJson<T>(session: AuthSession, path: string): Promise<T> {
   const response = await fetch(`${session.baseUrl}${path}`, {
-    headers: {
-      Authorization: authHeader(session),
-      "X-Tenant-Id": session.tenantId,
-    },
+    headers: authHeaders(session),
   });
 
   if (!response.ok) {
@@ -93,8 +103,7 @@ async function requestWithBody<T>(
   const response = await fetch(`${session.baseUrl}${path}`, {
     method,
     headers: {
-      Authorization: authHeader(session),
-      "X-Tenant-Id": session.tenantId,
+      ...authHeaders(session),
       "Content-Type": "application/json",
     },
     body: body === undefined ? undefined : JSON.stringify(body),
