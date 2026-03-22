@@ -1,773 +1,261 @@
-# AI-Enabled CRM
+# Alad CRM
 
-AI-Enabled CRM is a tenant-aware CRM platform for SMEs, built with Spring Boot and a dedicated Python AI service. The current codebase delivers a complete Phase 1 backend MVP, a completed Phase 2 service and marketing expansion, and active Phase 3 foundations across commerce, connector events, and AI-driven sales or customer health insights, including CRM records, role-based access control, workflow automation, communications logging, ticketing with SLA rules and lifecycle reporting, knowledge content management, marketing segmentation, campaign execution tracking, scheduled reporting, richer analytics, dashboard metrics, traceable AI interactions, tenant-scoped commerce records, POS or ERP commerce event ingestion, lead scoring, account health assessment, churn risk analysis, and next-best-action recommendations with optional follow-up activity creation.
+## Open-Source AI CRM for Tenant-Aware Customer Operations
 
-## What This Repository Includes
+[Documentation](docs/architecture/system-architecture.md) · [Project Phases](docs/planning/project-phases.md) · [Timeline](docs/planning/timeline-guide.md) · [Local Setup](#installation) · [AI Service](ai-service/README.md)
 
-- Multi-tenant Spring Boot backend with tenant header enforcement
-- Local RBAC model for development and internal validation
-- Core CRM records: leads, contacts, accounts, opportunities
-- Activities and timeline feed
-- Service tickets and SLA policy management
-- Knowledge base articles and canned response templates
-- Audience segments and campaign management
-- Campaign delivery execution and communication tracking
-- Scheduled report snapshots and expanded dashboard analytics
-- Revenue forecast and pipeline intelligence
-- Ticket SLA lifecycle reporting and campaign metrics
-- Product catalog, quotes, and invoices foundations
-- POS and ERP connector groundwork with commerce event ingestion
-- Commerce connector sync with quote, invoice, and account lifecycle enrichment
-- Workflow automation with trigger-action rules
-- Integration connection registry for email and WhatsApp style channels
-- Communication record tracking
-- Dashboard summary metrics
-- Traceable AI summary, draft, lead scoring, account health, churn risk, and recommendation endpoints
-- Spring-to-Python AI orchestration with local fallback for summarize and draft flows
-- Audit logging for key tenant-scoped actions
-- Python AI service boundary for model-facing work
-- Docker Compose and GitHub Actions for local setup and CI
+![Dashboard](screenshots/Screenshot%202026-03-22%20125311.png)
 
-## Platform Scope Delivered
+# Installation
 
-### CRM Core
-- Create, list, and fetch leads
-- Create, list, and fetch contacts
-- Create, list, and fetch accounts
-- Create, list, and fetch opportunities
-- Create, list, and fetch activities
-- Read tenant timeline feed
+## Prerequisites
 
-### Automation and Operations
-- Create and list workflow definitions
-- Trigger workflow-created activities from lead and opportunity creation
-- Read dashboard summary KPIs
-- Create and list service tickets
-- Update ticket status and assignment
-- Run SLA escalation for overdue tickets
-- Create and list SLA policies
-- Create and list knowledge base articles
-- Create and list canned responses
-- Create and list audience segments
-- Create and list campaigns
-- Execute campaign delivery runs and log outbound campaign communications
-- Generate and list report snapshots
-- Read expanded dashboard analytics
-- Read ticket SLA lifecycle reports and tenant campaign metrics
-- Create and read products, quotes, and invoices
-- Import commerce events from POS and ERP integrations linked to CRM records
-- Register and list integration connections
-- Create and list communication records
-- Read tenant audit history
+- Java 21
+- Maven 3.9+
+- Node.js 20+
+- Docker Desktop or Docker Engine
+- Python 3.11+ for the AI service
 
-### AI
-- Create tenant-scoped summaries
-- Create tenant-scoped drafts
-- Create tenant-scoped lead scores from CRM engagement signals
-- Create tenant-scoped account health assessments from activity and communication signals
-- Create tenant-scoped churn risk insights from activity, communication, and commerce signals
-- Generate next-best-action recommendations and optionally convert them into follow-up activities
-- Persist AI interaction traces for later review
+## Infrastructure
 
-### Security
-- HTTP Basic authentication for local development
-- Authority-based endpoint access
-- Tenant enforcement through `X-Tenant-Id`
-- Identity introspection endpoint for validating effective authorities
+Start PostgreSQL:
 
-## Architecture
-
-### Backend Components
-- Spring Boot API for CRM and operational workflows
-- PostgreSQL for application persistence
-- FastAPI-based AI service for model-facing capabilities
-- Docker Compose for local infrastructure
-
-### Design Principles
-- Tenant-first data isolation
-- Security by default
-- API-first delivery
-- Clear controller, service, and repository boundaries
-- AI outputs treated as auditable application artifacts
-
-### Package Layout
-
-```text
-com.dala.crm
-|-- controller
-|-- dto
-|-- entity
-|-- exception
-|-- impl
-|-- repo
-|-- security
-`-- service
+```bash
+docker compose up -d postgres
 ```
 
-Additional design and planning context lives in:
+## Backend
 
-- [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
-- [docs/architecture/module-packaging-standard.md](docs/architecture/module-packaging-standard.md)
-- [docs/planning/project-phases.md](docs/planning/project-phases.md)
-- [docs/planning/timeline-guide.md](docs/planning/timeline-guide.md)
+```bash
+mvn spring-boot:run
+```
 
-## Technology Stack
+Backend URL:
+
+```text
+http://localhost:8080
+```
+
+## Frontend
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+Frontend URL:
+
+```text
+http://localhost:5173
+```
+
+## Python AI Service
+
+```bash
+cd ai-service
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8090
+```
+
+AI service URL:
+
+```text
+http://localhost:8090
+```
+
+# Why Alad CRM
+
+We built Alad CRM around a simple idea: a modern CRM should not stop at contact storage and pipelines. It should help teams run customer operations across sales, service, marketing, commerce, and AI-assisted execution from one tenant-aware platform.
+
+The platform is designed to:
+
+- give each company its own secure workspace
+- keep CRM, service, commerce, and automation flows connected
+- make AI outputs traceable and operational instead of decorative
+- provide a foundation that can grow from product MVP into an extensible platform
+
+# What You Can Do With Alad CRM
+
+Below are the main areas already implemented in the repository.
+
+- [Manage leads, contacts, accounts, and opportunities](#manage-leads-contacts-accounts-and-opportunities)
+- [Run service operations with tickets, SLA rules, and knowledge tools](#run-service-operations-with-tickets-sla-rules-and-knowledge-tools)
+- [Execute campaigns, reporting, and customer communication workflows](#execute-campaigns-reporting-and-customer-communication-workflows)
+- [Track quotes, invoices, products, and commerce events](#track-quotes-invoices-products-and-commerce-events)
+- [Use AI summaries, drafting, recommendations, and workspace chat](#use-ai-summaries-drafting-recommendations-and-workspace-chat)
+- [Extend the platform with custom entities, workflows, and integrations](#extend-the-platform-with-custom-entities-workflows-and-integrations)
+
+## Manage leads, contacts, accounts, and opportunities
+
+Alad CRM supports the core commercial workflow with tenant-scoped records, dashboards, and pipeline views.
+
+![Leads Workspace](screenshots/Screenshot%202026-03-22%20125257.png)
+
+![Opportunities Pipeline](screenshots/Screenshot%202026-03-22%20125328.png)
+
+## Run service operations with tickets, SLA rules, and knowledge tools
+
+The backend includes:
+
+- tickets and assignment workflows
+- SLA policies and escalation automation
+- knowledge base articles
+- canned responses
+- audit logging and activity history
+
+## Execute campaigns, reporting, and customer communication workflows
+
+Marketing and reporting foundations include:
+
+- audience segments
+- campaigns and delivery execution
+- report snapshots
+- conversation records across channels
+- dashboard analytics and operational summaries
+
+## Track quotes, invoices, products, and commerce events
+
+Commerce workflows include:
+
+- product catalog records
+- quote and invoice management
+- quote-to-invoice conversion
+- renewal automation
+- refund and cancellation status handling
+- POS and ERP style commerce event ingestion
+
+## Use AI summaries, drafting, recommendations, and workspace chat
+
+The platform already supports:
+
+- AI summaries
+- AI drafting
+- lead scoring
+- account health scoring
+- churn risk analysis
+- next-best-action recommendations
+- a workspace assistant chat that uses tenant-scoped company data
+
+The Python AI service includes a LangGraph-backed assistant route and an OpenAI-capable provider abstraction.
+
+## Extend the platform with custom entities, workflows, and integrations
+
+Phase 4 foundations are also in place:
+
+- custom entity definitions and records
+- workflow builder foundations
+- integration marketplace and connection lifecycle support
+- tenant profile deployment metadata for shared and dedicated models
+
+# Authentication and Tenant Model
+
+Each company signs into its own workspace using a workspace ID. The backend enforces tenant isolation through tenant-scoped records and tenant-aware security.
+
+Primary auth flow:
+
+- workspace signup
+- workspace login
+- JWT-backed authenticated sessions
+
+For local compatibility and testing, `tenant-demo` still supports:
+
+```text
+local-dev / local-dev-pass
+local-view / local-view-pass
+```
+
+# Seed Data
+
+The repository includes a ready-to-use tenant dataset for `dala-inc`:
+
+- [`scripts/seed-dala-inc.sql`](scripts/seed-dala-inc.sql)
+
+That workspace contains live sample records across CRM, service, marketing, commerce, platform, reporting, and AI history.
+
+# Stack
 
 - Java 21
 - Spring Boot 3
 - Spring Security
 - Spring Data JPA
 - PostgreSQL
-- Python 3.12
+- React
+- Vite
+- Python
 - FastAPI
+- LangGraph
+- OpenAI SDK
 - Docker Compose
 - GitHub Actions
 
-## Repository Structure
+# Repository Structure
 
 ```text
 .
 |-- ai-service
 |-- docs
+|-- screenshots
 |-- scripts
 |-- src
 |   |-- main
 |   `-- test
+|-- ui
 |-- .github
 |-- docker-compose.yml
 |-- pom.xml
 `-- README.md
 ```
 
-## Getting Started
+# Testing
 
-### Prerequisites
-
-- Java 21
-- Maven 3.9+
-- Docker Desktop or Docker Engine
-
-### Start Infrastructure
-
-```bash
-docker compose up -d postgres
-```
-
-To run the Python AI service as well:
-
-```bash
-docker compose up -d
-```
-
-### Start the Backend
-
-```bash
-mvn spring-boot:run
-```
-
-The backend runs on `http://localhost:8080`.
-
-## Configuration
-
-### Backend
-
-Default backend configuration is defined in `src/main/resources/application.yml`.
-
-Supported database environment variables:
-
-- `DB_HOST`
-- `DB_PORT`
-- `DB_NAME`
-- `DB_USER`
-- `DB_PASSWORD`
-
-### AI Service
-
-The Python AI service is controlled through:
-
-- `AI_PROVIDER`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
-- `AI_SERVICE_ENABLED`
-- `AI_SERVICE_BASE_URL`
-- `AI_SERVICE_TIMEOUT_MS`
-
-The included `mock` provider is the default for local development.
-The Spring backend will call the Python AI service for summarize and draft requests when it is reachable, and fall back to deterministic local behavior if it is not.
-
-## Local Authentication Model
-
-Current local users:
-
-```text
-local-dev / local-dev-pass
-  Full read/write access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, commerce, workflows, integrations, communications, AI, dashboard, and audit logs
-
-local-view / local-view-pass
-  Read access across CRM, tickets, SLA policies, knowledge content, marketing, reporting, commerce, workflows, integrations, communications, AI history, dashboard, and identity
-```
-
-All protected requests must include:
-
-- Basic authentication credentials
-- `X-Tenant-Id`
-
-Example:
-
-```bash
-curl -u local-view:local-view-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/identity/me
-```
-
-## API Reference
-
-### Public
-
-- `GET /api/health`
-
-### Identity
-
-- `GET /api/v1/identity/me`
-
-### Leads
-
-- `POST /api/v1/leads`
-- `GET /api/v1/leads`
-- `GET /api/v1/leads/{id}`
-
-### Contacts
-
-- `POST /api/v1/contacts`
-- `GET /api/v1/contacts`
-- `GET /api/v1/contacts/{id}`
-
-### Accounts
-
-- `POST /api/v1/accounts`
-- `GET /api/v1/accounts`
-- `GET /api/v1/accounts/{id}`
-
-### Opportunities
-
-- `POST /api/v1/opportunities`
-- `GET /api/v1/opportunities`
-- `GET /api/v1/opportunities/{id}`
-
-### Activities
-
-- `POST /api/v1/activities`
-- `GET /api/v1/activities`
-- `GET /api/v1/activities/{id}`
-
-### Timeline
-
-- `GET /api/v1/timeline`
-
-### Tickets
-
-- `POST /api/v1/tickets`
-- `GET /api/v1/tickets`
-- `GET /api/v1/tickets/sla-report`
-- `GET /api/v1/tickets/{id}`
-- `PATCH /api/v1/tickets/{id}/status`
-- `PATCH /api/v1/tickets/{id}/assignment`
-- `POST /api/v1/tickets/escalations/run`
-
-### SLA Policies
-
-- `POST /api/v1/sla-policies`
-- `GET /api/v1/sla-policies`
-
-### Knowledge Base
-
-- `POST /api/v1/knowledge-base`
-- `GET /api/v1/knowledge-base`
-- `GET /api/v1/knowledge-base/{id}`
-
-### Canned Responses
-
-- `POST /api/v1/canned-responses`
-- `GET /api/v1/canned-responses`
-- `GET /api/v1/canned-responses/{id}`
-
-### Audience Segments
-
-- `POST /api/v1/audience-segments`
-- `GET /api/v1/audience-segments`
-- `GET /api/v1/audience-segments/{id}`
-
-### Campaigns
-
-- `POST /api/v1/campaigns`
-- `GET /api/v1/campaigns`
-- `GET /api/v1/campaigns/metrics`
-- `GET /api/v1/campaigns/{id}`
-- `POST /api/v1/campaigns/{id}/deliveries/run`
-
-### Products
-
-- `POST /api/v1/products`
-- `GET /api/v1/products`
-- `GET /api/v1/products/{id}`
-
-### Quotes
-
-- `POST /api/v1/quotes`
-- `POST /api/v1/quotes/{id}/convert-to-invoice`
-- `PATCH /api/v1/quotes/{id}/status`
-- `GET /api/v1/quotes`
-- `GET /api/v1/quotes/{id}`
-
-### Invoices
-
-- `POST /api/v1/invoices`
-- `POST /api/v1/invoices/renewals/run`
-- `PATCH /api/v1/invoices/{id}/status`
-- `GET /api/v1/invoices`
-- `GET /api/v1/invoices/{id}`
-
-### Commerce Events
-
-- `POST /api/v1/commerce-events`
-- `GET /api/v1/commerce-events`
-- `GET /api/v1/commerce-events/{id}`
-
-### Workflows
-
-- `POST /api/v1/workflows`
-- `GET /api/v1/workflows`
-
-### Dashboard
-
-- `GET /api/v1/dashboard/summary`
-- `GET /api/v1/dashboard/analytics`
-- `GET /api/v1/dashboard/forecast`
-
-### Reports
-
-- `POST /api/v1/reports`
-- `GET /api/v1/reports`
-- `GET /api/v1/reports/{id}`
-
-### Integrations
-
-- `POST /api/v1/integrations`
-- `GET /api/v1/integrations`
-
-### Communications
-
-- `POST /api/v1/communications`
-- `GET /api/v1/communications`
-
-### AI
-
-- `POST /api/v1/ai/summarize`
-- `POST /api/v1/ai/draft`
-- `POST /api/v1/ai/lead-score`
-- `POST /api/v1/ai/account-health`
-- `POST /api/v1/ai/churn-risk`
-- `POST /api/v1/ai/recommend`
-- `GET /api/v1/ai`
-
-### Audit Logs
-
-- `GET /api/v1/audit-logs`
-
-### Python AI Service
-
-- `GET /health`
-- `POST /v1/summarize`
-- `POST /v1/draft`
-
-## Example Requests
-
-Create a workflow:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/workflows \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Lead follow-up","triggerType":"LEAD_CREATED","actionType":"CREATE_ACTIVITY","actionSubject":"Call new lead","actionDetails":"Reach out within one business day.","active":true}'
-```
-
-Create an SLA policy:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/sla-policies \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"High Priority Response","priority":"HIGH","responseHours":4,"defaultAssignee":"Support Team","active":true}'
-```
-
-Create a ticket:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/tickets \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"title":"Payment issue","description":"Customer could not complete payment.","priority":"HIGH","assignee":"Support Team","sourceChannel":"EMAIL","relatedEntityType":"ACCOUNT","relatedEntityId":21}'
-```
-
-Update ticket status:
-
-```bash
-curl -X PATCH http://localhost:8080/api/v1/tickets/101/status \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"status":"IN_PROGRESS","note":"Support team accepted the ticket."}'
-```
-
-Update ticket assignment:
-
-```bash
-curl -X PATCH http://localhost:8080/api/v1/tickets/101/assignment \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"assignee":"Escalation Team","note":"Escalated to specialist queue."}'
-```
-
-Run ticket escalations:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/tickets/escalations/run \
-  -u local-dev:local-dev-pass \
-  -H "X-Tenant-Id: tenant-demo"
-```
-
-Read ticket SLA report:
-
-```bash
-curl -u local-view:local-view-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/tickets/sla-report
-```
-
-Create a knowledge base article:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/knowledge-base \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"title":"Refund policy","category":"Billing","body":"Refunds are reviewed within five business days after the request is verified.","published":true}'
-```
-
-Create a canned response:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/canned-responses \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"title":"Shipping delay update","channelType":"EMAIL","category":"Support","body":"Thanks for your patience. Your order is still in transit and we will share the next update within 24 hours."}'
-```
-
-Create an audience segment:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/audience-segments \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Dormant customers","sourceType":"ACCOUNT","criteria":"lastContactedBefore=2026-01-01","estimatedSize":24,"active":true}'
-```
-
-Create a campaign:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/campaigns \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Retention outreach","channelType":"EMAIL","status":"DRAFT","audienceSegmentId":1,"subject":"We miss you","body":"Come back for a product walkthrough.","scheduledAt":"2026-03-25T08:00:00Z"}'
-```
-
-Run campaign delivery:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/campaigns/1/deliveries/run \
-  -u local-dev:local-dev-pass \
-  -H "X-Tenant-Id: tenant-demo"
-```
-
-Read campaign metrics:
-
-```bash
-curl -u local-view:local-view-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/campaigns/metrics
-```
-
-Create a product:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/products \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"CRM Premium License","description":"Annual premium CRM subscription","unitPrice":499.00,"status":"ACTIVE"}'
-```
-
-Create a quote:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/quotes \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"accountId":21,"name":"Acme Renewal Quote","amount":12500.00,"status":"DRAFT","validUntil":"2026-04-01T00:00:00Z"}'
-```
-
-Convert a quote to an invoice:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/quotes/181/convert-to-invoice \
-  -u local-dev:local-dev-pass \
-  -H "X-Tenant-Id: tenant-demo"
-```
-
-Cancel a quote:
-
-```bash
-curl -X PATCH http://localhost:8080/api/v1/quotes/181/status \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"status":"CANCELLED","note":"Customer paused the deal."}'
-```
-
-Create an invoice:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/invoices \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"accountId":21,"invoiceNumber":"INV-2026-001","amount":12500.00,"status":"ISSUED","dueAt":"2026-04-15T00:00:00Z"}'
-```
-
-Run renewal automation:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/invoices/renewals/run \
-  -u local-dev:local-dev-pass \
-  -H "X-Tenant-Id: tenant-demo"
-```
-
-Refund an invoice:
-
-```bash
-curl -X PATCH http://localhost:8080/api/v1/invoices/191/status \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"status":"REFUNDED","note":"Customer refund approved."}'
-```
-
-Import a commerce event from a POS or ERP integration:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/commerce-events \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"integrationConnectionId":71,"eventType":"SALE_COMPLETED","sourceReference":"POS-1001","relatedEntityType":"ACCOUNT","relatedEntityId":21,"amount":12500.00,"payload":"items=1"}'
-```
-
-Connector sync behaviors currently supported:
-
-- `QUOTE_ACCEPTED` linked to `QUOTE` marks the quote as `APPROVED`
-- `PAYMENT_RECEIVED` linked to `INVOICE` marks the invoice as `PAID`
-- `SALE_COMPLETED` linked to `ACCOUNT` records an inbound commerce communication and sync activity
-
-Read dashboard analytics:
-
-```bash
-curl -u local-view:local-view-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/dashboard/analytics
-```
-
-Read dashboard revenue forecast:
-
-```bash
-curl -u local-view:local-view-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/dashboard/forecast
-```
-
-Generate a report snapshot:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/reports \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Weekly service summary","reportType":"SERVICE_OVERVIEW","deliveryChannel":"EMAIL","scheduleCadence":"WEEKLY"}'
-```
-
-Read dashboard summary:
-
-```bash
-curl -u local-view:local-view-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/dashboard/summary
-```
-
-Register an integration:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/integrations \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"WhatsApp Cloud","channelType":"WHATSAPP","provider":"META","status":"CONNECTED"}'
-```
-
-Create a communication record:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/communications \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Welcome email","channelType":"EMAIL","direction":"OUTBOUND","participant":"jane@example.com","subject":"Welcome","messageBody":"Thanks for your interest.","relatedEntityType":"LEAD","relatedEntityId":1}'
-```
-
-Create an AI summary:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/ai/summarize \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Lead summary","sourceType":"LEAD","sourceId":1,"text":"Jane requested a pricing walkthrough and wants implementation next month."}'
-```
-
-Create an AI draft:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/ai/draft \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Follow-up email","sourceType":"LEAD","sourceId":1,"instructions":"Write a short follow-up email for a pricing walkthrough.","channel":"EMAIL","tone":"PROFESSIONAL"}'
-```
-
-Create an AI lead score:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/ai/lead-score \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Lead score","leadId":1}'
-```
-
-Create an AI account health assessment:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/ai/account-health \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Account health","accountId":21}'
-```
-
-Create an AI churn risk assessment:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/ai/churn-risk \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Account churn risk","accountId":21}'
-```
-
-Create an AI recommendation and follow-up activity:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/ai/recommend \
-  -u local-dev:local-dev-pass \
-  -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: tenant-demo" \
-  -d '{"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}'
-```
-
-Read audit logs:
-
-```bash
-curl -u local-dev:local-dev-pass \
-  -H "X-Tenant-Id: tenant-demo" \
-  http://localhost:8080/api/v1/audit-logs
-```
-
-## Testing
-
-### Local Test Run
+## Backend
 
 ```bash
 mvn test
 ```
 
-### Current Automated Coverage
+## Frontend
 
-- public health access
-- authentication and tenant enforcement
-- authority checks for writers vs readers
-- timeline and audit log access control
-- workflow, dashboard, reporting, ticket, SLA, knowledge content, marketing, integration, communication, and AI endpoint security
+```bash
+cd ui
+npm run build
+```
 
-### CI
+## Containerized Backend Verification
 
-GitHub Actions runs the backend suite through:
+```bash
+docker run --rm -v %cd%:/workspace -w /workspace maven:3.9.9-eclipse-temurin-21 mvn -q test
+```
 
-- `.github/workflows/backend-ci.yml`
+# Current Status
 
-## Current Status
+The repository now covers the planned feature roadmap through platformization scope:
 
-Completed:
+- Phase 0 completed
+- Phase 1 completed
+- Phase 2 completed
+- Phase 3 completed
+- Phase 4 completed in foundation scope
 
-- Phase 0 foundation and hardening
-- Phase 1 CRM core records
-- activities and timeline
-- audit logging
-- workflow automation basics
-- dashboard summary metrics
-- communication and integration foundations
-- traceable AI summary and draft flows
-- Phase 2 ticket management and SLA due-date basics
-- Phase 2 ticket status and assignment workflows
-- Phase 2 SLA breach escalation automation
-- Phase 2 knowledge base and canned response foundations
-- Phase 2 audience segmentation and campaign foundations
-- Phase 2 scheduled reporting and expanded analytics
-- Phase 2 campaign delivery execution and response tracking
-- Phase 2 SLA lifecycle reporting and campaign metrics visibility
-- Phase 3 commerce foundation with product catalog, quotes, and invoices
-- Phase 3 POS and ERP connector groundwork with commerce events linked to CRM records
-- Phase 3 lead scoring and account health model foundations
-- Phase 3 churn risk and recommendation automation foundations
-- Phase 3 forecasting and revenue intelligence foundations
-- Phase 3 quote-to-invoice lifecycle automation
-- Phase 3 commerce connector sync and lifecycle enrichment
-- Phase 3 renewal automation foundations
-- Phase 3 refund and cancellation workflow foundations
-- Phase 3 AI provider orchestration foundations
+What remains is mostly production hardening and maturity work:
 
-Planned next:
+- live validation of the Python AI assistant path in your runtime
+- deeper end-to-end and integration tests
+- richer auth lifecycle flows such as invites and resets
+- pagination and backend query consistency
+- observability, retries, reconciliation, and deployment hardening
+- frontend polish and performance cleanup
 
-- JWT or OAuth2 resource server integration
-- deeper provider routing and AI outcome evaluation
+# Contributing and Project Context
 
-## Notes
+Additional project context lives in:
 
-- The current authentication model is for development and internal validation.
-- AI responses created by the Spring backend are intentionally traceable and tenant-scoped.
-- The Python AI service remains available for deeper provider-facing integration work as the platform evolves.
+- [`docs/architecture/system-architecture.md`](docs/architecture/system-architecture.md)
+- [`docs/architecture/module-packaging-standard.md`](docs/architecture/module-packaging-standard.md)
+- [`docs/planning/project-phases.md`](docs/planning/project-phases.md)
+- [`docs/planning/timeline-guide.md`](docs/planning/timeline-guide.md)
+
+If you are contributing locally, start with the backend, frontend, and AI service setup sections above, then use the seeded `dala-inc` workspace for live validation.
