@@ -4,15 +4,18 @@ import com.dala.crm.dto.WorkflowBuilderCatalogResponse;
 import com.dala.crm.dto.WorkflowBuilderCustomEntityOption;
 import com.dala.crm.dto.WorkflowDefinitionCreateRequest;
 import com.dala.crm.dto.WorkflowDefinitionDto;
+import com.dala.crm.dto.WorkflowDefinitionUpdateRequest;
 import com.dala.crm.entity.CustomEntityDefinition;
 import com.dala.crm.entity.WorkflowDefinition;
 import com.dala.crm.exception.BadRequestException;
+import com.dala.crm.exception.WorkflowDefinitionException;
 import com.dala.crm.repo.CustomEntityDefinitionRepository;
 import com.dala.crm.repo.WorkflowDefinitionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.dala.crm.security.TenantContext;
+import com.dala.crm.service.AuditLogService;
 import com.dala.crm.service.WorkflowDefinitionService;
 import java.time.Instant;
 import java.util.List;
@@ -54,15 +57,18 @@ public class WorkflowDefinitionServiceImpl implements WorkflowDefinitionService 
 
     private final WorkflowDefinitionRepository repository;
     private final CustomEntityDefinitionRepository customEntityDefinitionRepository;
+    private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
     public WorkflowDefinitionServiceImpl(
             WorkflowDefinitionRepository repository,
             CustomEntityDefinitionRepository customEntityDefinitionRepository,
+            AuditLogService auditLogService,
             ObjectMapper objectMapper
     ) {
         this.repository = repository;
         this.customEntityDefinitionRepository = customEntityDefinitionRepository;
+        this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
     }
 
@@ -91,6 +97,39 @@ public class WorkflowDefinitionServiceImpl implements WorkflowDefinitionService 
         workflowDefinition.setActive(request.active());
         workflowDefinition.setCreatedAt(Instant.now());
         return toDto(repository.save(workflowDefinition));
+    }
+
+    @Override
+    public WorkflowDefinitionDto update(Long id, WorkflowDefinitionUpdateRequest request) {
+        WorkflowDefinition workflowDefinition = currentWorkflow(id);
+        String tenantId = currentTenant();
+        String triggerType = normalizeSupportedValue(request.triggerType(), SUPPORTED_TRIGGER_TYPES, "triggerType");
+        String actionType = normalizeSupportedValue(request.actionType(), SUPPORTED_ACTION_TYPES, "actionType");
+        String targetEntityType = normalizeTargetEntityType(request.targetEntityType());
+        String targetEntityApiName = validateTargetEntityApiName(tenantId, targetEntityType, request.targetEntityApiName());
+        String conditionsJson = normalizeJsonObjectOrNull(request.conditionsJson(), "conditionsJson");
+        String actionConfigJson = normalizeJsonObjectOrNull(request.actionConfigJson(), "actionConfigJson");
+
+        workflowDefinition.setName(request.name().trim());
+        workflowDefinition.setTriggerType(triggerType);
+        workflowDefinition.setTriggerFilter(trimToNull(request.triggerFilter()));
+        workflowDefinition.setTargetEntityType(targetEntityType);
+        workflowDefinition.setTargetEntityApiName(targetEntityApiName);
+        workflowDefinition.setConditionsJson(conditionsJson);
+        workflowDefinition.setActionType(actionType);
+        workflowDefinition.setActionSubject(request.actionSubject().trim());
+        workflowDefinition.setActionDetails(trimToNull(request.actionDetails()));
+        workflowDefinition.setActionConfigJson(actionConfigJson);
+        workflowDefinition.setActive(request.active());
+
+        WorkflowDefinition savedWorkflow = repository.save(workflowDefinition);
+        auditLogService.record(
+                "UPDATE",
+                "WORKFLOW_DEFINITION",
+                savedWorkflow.getId(),
+                "Updated workflow definition " + savedWorkflow.getName()
+        );
+        return toDto(savedWorkflow);
     }
 
     @Override
@@ -125,6 +164,13 @@ public class WorkflowDefinitionServiceImpl implements WorkflowDefinitionService 
     private String currentTenant() {
         return TenantContext.getTenantId()
                 .orElseThrow(() -> new BadRequestException("Missing required header: X-Tenant-Id"));
+    }
+
+    private WorkflowDefinition currentWorkflow(Long id) {
+        String tenantId = currentTenant();
+        return repository.findById(id)
+                .filter(record -> tenantId.equals(record.getTenantId()))
+                .orElseThrow(() -> new WorkflowDefinitionException("Workflow not found: " + id));
     }
 
     private String trimToNull(String value) {

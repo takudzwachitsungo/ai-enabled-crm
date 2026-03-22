@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -36,7 +37,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             TenantAwareUserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            TenantFilter tenantFilter
     ) throws Exception {
         AuthenticationManagerBuilder authenticationManagerBuilder =
                 http.getSharedObject(AuthenticationManagerBuilder.class);
@@ -49,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/health/**", "/actuator/health", "/api/public/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(tenantFilter, BasicAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();

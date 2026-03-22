@@ -2,6 +2,7 @@ package com.dala.crm.impl;
 
 import com.dala.crm.dto.CustomEntityDefinitionCreateRequest;
 import com.dala.crm.dto.CustomEntityDefinitionDto;
+import com.dala.crm.dto.CustomEntityDefinitionUpdateRequest;
 import com.dala.crm.dto.CustomEntityRecordCreateRequest;
 import com.dala.crm.dto.CustomEntityRecordDto;
 import com.dala.crm.entity.CustomEntityDefinition;
@@ -91,6 +92,25 @@ public class CustomEntityServiceImpl implements CustomEntityService {
     @Transactional(readOnly = true)
     public CustomEntityDefinitionDto getDefinition(Long id) {
         return toDefinitionDto(currentDefinition(id));
+    }
+
+    @Override
+    public CustomEntityDefinitionDto updateDefinition(Long id, CustomEntityDefinitionUpdateRequest request) {
+        CustomEntityDefinition definition = currentDefinition(id);
+        validateSchema(request.fieldSchemaJson());
+        definition.setName(request.name().trim());
+        definition.setPluralLabel(trimToNull(request.pluralLabel()));
+        definition.setFieldSchemaJson(request.fieldSchemaJson().trim());
+        definition.setActive(request.active());
+
+        CustomEntityDefinition savedDefinition = definitionRepository.save(definition);
+        auditLogService.record(
+                "UPDATE",
+                "CUSTOM_ENTITY_DEFINITION",
+                savedDefinition.getId(),
+                "Updated custom entity definition " + savedDefinition.getApiName()
+        );
+        return toDefinitionDto(savedDefinition);
     }
 
     @Override

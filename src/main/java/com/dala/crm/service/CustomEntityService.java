@@ -2,6 +2,7 @@ package com.dala.crm.service;
 
 import com.dala.crm.dto.CustomEntityDefinitionCreateRequest;
 import com.dala.crm.dto.CustomEntityDefinitionDto;
+import com.dala.crm.dto.CustomEntityDefinitionUpdateRequest;
 import com.dala.crm.dto.CustomEntityRecordCreateRequest;
 import com.dala.crm.dto.CustomEntityRecordDto;
 import java.util.List;
@@ -16,6 +17,8 @@ public interface CustomEntityService {
     List<CustomEntityDefinitionDto> listDefinitions();
 
     CustomEntityDefinitionDto getDefinition(Long id);
+
+    CustomEntityDefinitionDto updateDefinition(Long id, CustomEntityDefinitionUpdateRequest request);
 
     CustomEntityRecordDto createRecord(Long definitionId, CustomEntityRecordCreateRequest request);
 

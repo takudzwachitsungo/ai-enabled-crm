@@ -14,6 +14,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * User details service backed by tenant-scoped app users with local demo fallbacks.
@@ -38,7 +40,7 @@ public class TenantAwareUserDetailsService implements UserDetailsService {
             return demoUser;
         }
 
-        String tenantId = TenantContext.getTenantId().orElse(null);
+        String tenantId = resolveCurrentTenantId();
         if (tenantId == null || tenantId.isBlank() || appUserRepository == null) {
             throw new UsernameNotFoundException("User not found");
         }
@@ -64,6 +66,27 @@ public class TenantAwareUserDetailsService implements UserDetailsService {
             return viewerAuthorities();
         }
         return adminAuthorities();
+    }
+
+    private String resolveCurrentTenantId() {
+        String tenantId = TenantContext.getTenantId().orElse(null);
+        if (tenantId != null && !tenantId.isBlank()) {
+            return tenantId;
+        }
+
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes == null) {
+                return null;
+            }
+            String headerTenantId = attributes.getRequest().getHeader(TenantFilter.TENANT_HEADER);
+            if (headerTenantId == null || headerTenantId.isBlank()) {
+                return null;
+            }
+            return headerTenantId.trim();
+        } catch (IllegalStateException ex) {
+            return null;
+        }
     }
 
     private String resolveTenantName(String tenantId) {
@@ -138,7 +161,9 @@ public class TenantAwareUserDetailsService implements UserDetailsService {
                 CrmAuthorities.AUDIT_READ,
                 CrmAuthorities.IDENTITY_READ,
                 CrmAuthorities.USERS_READ,
-                CrmAuthorities.USERS_WRITE
+                CrmAuthorities.USERS_WRITE,
+                CrmAuthorities.TENANT_PROFILE_READ,
+                CrmAuthorities.TENANT_PROFILE_WRITE
         ));
     }
 
@@ -167,7 +192,8 @@ public class TenantAwareUserDetailsService implements UserDetailsService {
                 CrmAuthorities.COMMUNICATIONS_READ,
                 CrmAuthorities.AI_INTERACTIONS_READ,
                 CrmAuthorities.IDENTITY_READ,
-                CrmAuthorities.USERS_READ
+                CrmAuthorities.USERS_READ,
+                CrmAuthorities.TENANT_PROFILE_READ
         ));
     }
 

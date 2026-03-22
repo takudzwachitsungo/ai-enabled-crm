@@ -14,6 +14,7 @@ import com.dala.crm.repo.TenantProfileRepository;
 import com.dala.crm.security.TenantUserPrincipal;
 import com.dala.crm.security.TenantAwareUserDetailsService;
 import com.dala.crm.service.AuthService;
+import java.time.Instant;
 import java.util.Comparator;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -57,6 +58,9 @@ public class AuthServiceImpl implements AuthService {
         TenantProfile tenantProfile = new TenantProfile();
         tenantProfile.setTenantId(tenantId);
         tenantProfile.setName(request.companyName().trim());
+        tenantProfile.setDeploymentModel("SHARED");
+        tenantProfile.setDeploymentStatus("ACTIVE");
+        tenantProfile.setUpdatedAt(Instant.now());
         tenantProfileRepository.save(tenantProfile);
 
         AppUser appUser = new AppUser();

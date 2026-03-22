@@ -1,7 +1,15 @@
 package com.dala.crm.dto;
 
 /**
- * Basic DTO for identitytenancy module scaffolding.
+ * Tenant profile settings including isolation and deployment posture.
  */
-public record TenantProfileDto(Long id, String name) {
+public record TenantProfileDto(
+        Long id,
+        String tenantId,
+        String name,
+        String deploymentModel,
+        String deploymentStatus,
+        String deploymentRegion,
+        String dedicatedInstanceKey
+) {
 }

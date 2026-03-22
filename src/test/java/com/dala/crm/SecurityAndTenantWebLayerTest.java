@@ -33,6 +33,7 @@ import com.dala.crm.controller.ProductController;
 import com.dala.crm.controller.ReportSnapshotController;
 import com.dala.crm.controller.QuoteController;
 import com.dala.crm.controller.SlaPolicyController;
+import com.dala.crm.controller.TenantProfileController;
 import com.dala.crm.controller.TicketController;
 import com.dala.crm.controller.TimelineController;
 import com.dala.crm.controller.WorkflowDefinitionController;
@@ -67,11 +68,14 @@ import com.dala.crm.dto.SlaPolicyResponse;
 import com.dala.crm.dto.TicketEscalationRunResponse;
 import com.dala.crm.dto.TicketResponse;
 import com.dala.crm.dto.TicketSlaReportResponse;
+import com.dala.crm.dto.TenantProfileDto;
 import com.dala.crm.dto.WorkflowDefinitionDto;
 import com.dala.crm.dto.WorkflowBuilderCatalogResponse;
 import com.dala.crm.dto.WorkflowBuilderCustomEntityOption;
 import com.dala.crm.dto.CannedResponseResponse;
 import com.dala.crm.dto.InvoiceResponse;
+import com.dala.crm.entity.AppUser;
+import com.dala.crm.entity.TenantProfile;
 import com.dala.crm.exception.GlobalExceptionHandler;
 import com.dala.crm.repo.AppUserRepository;
 import com.dala.crm.repo.TenantProfileRepository;
@@ -98,6 +102,7 @@ import com.dala.crm.service.ProductService;
 import com.dala.crm.service.QuoteService;
 import com.dala.crm.service.ReportSnapshotService;
 import com.dala.crm.service.SlaPolicyService;
+import com.dala.crm.service.TenantProfileService;
 import com.dala.crm.service.TicketService;
 import com.dala.crm.service.WorkflowDefinitionService;
 import com.dala.crm.service.CannedResponseService;
@@ -105,6 +110,7 @@ import com.dala.crm.service.InvoiceService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -140,7 +146,8 @@ import org.springframework.test.web.servlet.MockMvc;
         AiInteractionController.class,
         ReportSnapshotController.class,
         TicketController.class,
-        SlaPolicyController.class
+        SlaPolicyController.class,
+        TenantProfileController.class
 })
 @Import({SecurityConfig.class, TenantFilter.class, GlobalExceptionHandler.class})
 class SecurityAndTenantWebLayerTest {
@@ -229,6 +236,9 @@ class SecurityAndTenantWebLayerTest {
     @MockBean
     private SlaPolicyService slaPolicyService;
 
+    @MockBean
+    private TenantProfileService tenantProfileService;
+
     @Test
     void healthEndpointIsPublic() throws Exception {
         mockMvc.perform(get("/api/health"))
@@ -292,6 +302,37 @@ class SecurityAndTenantWebLayerTest {
                         "crm:custom-entities:read",
                         "crm:dashboard:read"
                 )));
+    }
+
+    @Test
+    void tenantWorkspaceUserCanAuthenticateWithBasicAuth() throws Exception {
+        AppUser appUser = new AppUser();
+        appUser.setId(901L);
+        appUser.setTenantId("workspace-alpha");
+        appUser.setEmail("admin@workspace-alpha.com");
+        appUser.setFullName("Workspace Admin");
+        appUser.setPasswordHash("{noop}secret123");
+        appUser.setRole("ADMIN");
+        appUser.setActive(true);
+        appUser.setCreatedAt(Instant.parse("2026-03-22T08:00:00Z"));
+
+        TenantProfile tenantProfile = new TenantProfile();
+        tenantProfile.setId(901L);
+        tenantProfile.setTenantId("workspace-alpha");
+        tenantProfile.setName("Workspace Alpha");
+
+        when(appUserRepository.findByTenantIdAndEmailIgnoreCase("workspace-alpha", "admin@workspace-alpha.com"))
+                .thenReturn(Optional.of(appUser));
+        when(tenantProfileRepository.findByTenantIdIgnoreCase("workspace-alpha"))
+                .thenReturn(Optional.of(tenantProfile));
+
+        mockMvc.perform(get("/api/v1/identity/me")
+                        .with(httpBasic("admin@workspace-alpha.com", "secret123"))
+                        .header(TenantFilter.TENANT_HEADER, "workspace-alpha"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenantId").value("workspace-alpha"))
+                .andExpect(jsonPath("$.tenantName").value("Workspace Alpha"))
+                .andExpect(jsonPath("$.email").value("admin@workspace-alpha.com"));
     }
 
     @Test
@@ -432,6 +473,42 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanUpdateCustomEntityDefinition() throws Exception {
+        when(customEntityService.updateDefinition(org.mockito.ArgumentMatchers.eq(211L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new CustomEntityDefinitionDto(
+                        211L,
+                        "Install Base",
+                        "install_base",
+                        "Install Bases",
+                        "{\"serialNumber\":{\"type\":\"TEXT\"},\"region\":{\"type\":\"TEXT\"},\"site\":{\"type\":\"TEXT\"}}",
+                        false,
+                        Instant.parse("2026-03-21T11:00:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/custom-entities/211")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Install Base","pluralLabel":"Install Bases","fieldSchemaJson":"{\\"serialNumber\\":{\\"type\\":\\"TEXT\\"},\\"region\\":{\\"type\\":\\"TEXT\\"},\\"site\\":{\\"type\\":\\"TEXT\\"}}","active":false}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void viewerCannotUpdateCustomEntityDefinition() throws Exception {
+        mockMvc.perform(patch("/api/v1/custom-entities/211")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Install Base","pluralLabel":"Install Bases","fieldSchemaJson":"{}","active":false}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void viewerCanReadWorkspaceUsers() throws Exception {
         when(appUserAdminService.list()).thenReturn(List.of(
                 new AppUserResponse(
@@ -449,6 +526,65 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].email").value("takudzwa@example.com"));
+    }
+
+    @Test
+    void viewerCanReadTenantProfile() throws Exception {
+        when(tenantProfileService.getCurrent()).thenReturn(
+                new TenantProfileDto(
+                        401L,
+                        "tenant-demo",
+                        "Tenant Demo",
+                        "SHARED",
+                        "ACTIVE",
+                        "eu-west-1",
+                        null
+                )
+        );
+
+        mockMvc.perform(get("/api/v1/tenant-profile")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deploymentModel").value("SHARED"));
+    }
+
+    @Test
+    void adminCanUpdateTenantProfile() throws Exception {
+        when(tenantProfileService.updateCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new TenantProfileDto(
+                        401L,
+                        "tenant-demo",
+                        "Tenant Demo",
+                        "DEDICATED",
+                        "PROVISIONING",
+                        "eu-west-1",
+                        null
+                )
+        );
+
+        mockMvc.perform(patch("/api/v1/tenant-profile")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"deploymentModel":"DEDICATED","deploymentRegion":"eu-west-1","dedicatedInstanceKey":""}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deploymentModel").value("DEDICATED"))
+                .andExpect(jsonPath("$.deploymentStatus").value("PROVISIONING"));
+    }
+
+    @Test
+    void viewerCannotUpdateTenantProfile() throws Exception {
+        mockMvc.perform(patch("/api/v1/tenant-profile")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"deploymentModel":"DEDICATED","deploymentRegion":"eu-west-1","dedicatedInstanceKey":""}
+                                """.trim()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -1501,6 +1637,102 @@ class SecurityAndTenantWebLayerTest {
                         .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].channelType").value("EMAIL"));
+    }
+
+    @Test
+    void adminCanUpdateWorkflowDefinition() throws Exception {
+        when(workflowDefinitionService.update(org.mockito.ArgumentMatchers.eq(221L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new WorkflowDefinitionDto(
+                        221L,
+                        "Renewal workflow",
+                        "CUSTOM_ENTITY_RECORD_CREATED",
+                        null,
+                        "CUSTOM_ENTITY",
+                        "install_base",
+                        "{\"region\":\"emea\"}",
+                        "CREATE_ACTIVITY",
+                        "Review install base update",
+                        "Queue a platform review activity.",
+                        "{\"priority\":\"HIGH\"}",
+                        false,
+                        Instant.parse("2026-03-21T11:15:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/workflows/221")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Renewal workflow","triggerType":"CUSTOM_ENTITY_RECORD_CREATED","triggerFilter":"","targetEntityType":"CUSTOM_ENTITY","targetEntityApiName":"install_base","conditionsJson":"{\\"region\\":\\"emea\\"}","actionType":"CREATE_ACTIVITY","actionSubject":"Review install base update","actionDetails":"Queue a platform review activity.","actionConfigJson":"{\\"priority\\":\\"HIGH\\"}","active":false}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void viewerCannotUpdateWorkflowDefinition() throws Exception {
+        mockMvc.perform(patch("/api/v1/workflows/221")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Renewal workflow","triggerType":"LEAD_CREATED","actionType":"CREATE_ACTIVITY","actionSubject":"Follow up","active":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanUpdateIntegrationConnection() throws Exception {
+        when(integrationConnectionService.update(org.mockito.ArgumentMatchers.eq(71L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new IntegrationConnectionDto(
+                        71L,
+                        "Retail POS",
+                        "POS",
+                        "INTERNAL",
+                        "retail-pos",
+                        "1.0.0",
+                        "ARCHIVED",
+                        Instant.parse("2026-03-21T09:30:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/v1/integrations/71")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Retail POS","status":"ARCHIVED"}
+                                """.trim()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+    }
+
+    @Test
+    void adminCanUninstallIntegrationConnection() throws Exception {
+        when(integrationConnectionService.uninstall(71L))
+                .thenReturn(new IntegrationConnectionDto(
+                        71L,
+                        "Retail POS",
+                        "POS",
+                        "INTERNAL",
+                        "retail-pos",
+                        "1.0.0",
+                        "DISCONNECTED",
+                        Instant.parse("2026-03-21T09:30:00Z")
+                ));
+
+        mockMvc.perform(post("/api/v1/integrations/71/uninstall")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DISCONNECTED"));
+    }
+
+    @Test
+    void viewerCannotUninstallIntegrationConnection() throws Exception {
+        mockMvc.perform(post("/api/v1/integrations/71/uninstall")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -4,8 +4,10 @@ import com.dala.crm.dto.IntegrationConnectionCreateRequest;
 import com.dala.crm.dto.IntegrationConnectionDto;
 import com.dala.crm.dto.IntegrationMarketplaceAppDto;
 import com.dala.crm.dto.IntegrationMarketplaceInstallRequest;
+import com.dala.crm.dto.IntegrationConnectionUpdateRequest;
 import com.dala.crm.entity.IntegrationConnection;
 import com.dala.crm.exception.BadRequestException;
+import com.dala.crm.exception.IntegrationConnectionException;
 import com.dala.crm.repo.IntegrationConnectionRepository;
 import com.dala.crm.security.TenantContext;
 import com.dala.crm.service.AuditLogService;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class IntegrationConnectionServiceImpl implements IntegrationConnectionService {
+
+    private static final Set<String> SUPPORTED_CONNECTION_STATUSES = Set.of(
+            "CONNECTED",
+            "DISCONNECTED",
+            "ERROR",
+            "ARCHIVED",
+            "PROVISIONING"
+    );
 
     private static final Map<String, IntegrationMarketplaceAppDto> MARKETPLACE_APPS = Map.of(
             "whatsapp-cloud", new IntegrationMarketplaceAppDto(
@@ -130,6 +141,37 @@ public class IntegrationConnectionServiceImpl implements IntegrationConnectionSe
     }
 
     @Override
+    public IntegrationConnectionDto update(Long id, IntegrationConnectionUpdateRequest request) {
+        IntegrationConnection connection = currentConnection(id);
+        connection.setName(request.name().trim());
+        connection.setStatus(normalizeStatus(request.status()));
+
+        IntegrationConnection savedConnection = repository.save(connection);
+        auditLogService.record(
+                "UPDATE",
+                "INTEGRATION_CONNECTION",
+                savedConnection.getId(),
+                "Updated integration connection " + savedConnection.getName()
+        );
+        return toDto(savedConnection);
+    }
+
+    @Override
+    public IntegrationConnectionDto uninstall(Long id) {
+        IntegrationConnection connection = currentConnection(id);
+        connection.setStatus("DISCONNECTED");
+
+        IntegrationConnection savedConnection = repository.save(connection);
+        auditLogService.record(
+                "UNINSTALL",
+                "INTEGRATION_CONNECTION",
+                savedConnection.getId(),
+                "Uninstalled integration connection " + savedConnection.getName()
+        );
+        return toDto(savedConnection);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<IntegrationConnectionDto> list() {
         return repository.findByTenantIdOrderByCreatedAtDesc(currentTenant()).stream()
@@ -140,6 +182,21 @@ public class IntegrationConnectionServiceImpl implements IntegrationConnectionSe
     private String currentTenant() {
         return TenantContext.getTenantId()
                 .orElseThrow(() -> new BadRequestException("Missing required header: X-Tenant-Id"));
+    }
+
+    private IntegrationConnection currentConnection(Long id) {
+        String tenantId = currentTenant();
+        return repository.findById(id)
+                .filter(record -> tenantId.equals(record.getTenantId()))
+                .orElseThrow(() -> new IntegrationConnectionException("Integration connection not found: " + id));
+    }
+
+    private String normalizeStatus(String value) {
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (!SUPPORTED_CONNECTION_STATUSES.contains(normalized)) {
+            throw new BadRequestException("Unsupported integration status: " + value.trim());
+        }
+        return normalized;
     }
 
     private IntegrationConnectionDto toDto(IntegrationConnection connection) {

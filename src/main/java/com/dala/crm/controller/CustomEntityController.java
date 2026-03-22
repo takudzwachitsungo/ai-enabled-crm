@@ -2,6 +2,7 @@ package com.dala.crm.controller;
 
 import com.dala.crm.dto.CustomEntityDefinitionCreateRequest;
 import com.dala.crm.dto.CustomEntityDefinitionDto;
+import com.dala.crm.dto.CustomEntityDefinitionUpdateRequest;
 import com.dala.crm.dto.CustomEntityRecordCreateRequest;
 import com.dala.crm.dto.CustomEntityRecordDto;
 import com.dala.crm.service.CustomEntityService;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -47,6 +49,15 @@ public class CustomEntityController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).CUSTOM_ENTITIES_READ)")
     public CustomEntityDefinitionDto getDefinition(@PathVariable Long definitionId) {
         return customEntityService.getDefinition(definitionId);
+    }
+
+    @PatchMapping("/{definitionId}")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).CUSTOM_ENTITIES_WRITE)")
+    public CustomEntityDefinitionDto updateDefinition(
+            @PathVariable Long definitionId,
+            @Valid @RequestBody CustomEntityDefinitionUpdateRequest request
+    ) {
+        return customEntityService.updateDefinition(definitionId, request);
     }
 
     @PostMapping("/{definitionId}/records")

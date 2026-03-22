@@ -52,6 +52,8 @@ public final class CrmAuthorities {
     public static final String IDENTITY_READ = "crm:identity:read";
     public static final String USERS_READ = "crm:users:read";
     public static final String USERS_WRITE = "crm:users:write";
+    public static final String TENANT_PROFILE_READ = "crm:tenant-profile:read";
+    public static final String TENANT_PROFILE_WRITE = "crm:tenant-profile:write";
 
     private CrmAuthorities() {
     }
