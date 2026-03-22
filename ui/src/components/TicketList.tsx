@@ -10,6 +10,7 @@ import {
   MoreHorizontalIcon,
 } from 'lucide-react';
 import { StatusBadge } from './ui/StatusBadge';
+import { Modal } from './ui/Modal';
 import { AuthSession, TicketRecord } from '../types/crm';
 import { createTicket, updateTicketAssignment, updateTicketStatus } from '../lib/api';
 
@@ -128,14 +129,36 @@ export function TicketList({ records = [], session, onRefresh }: TicketListProps
         </button>
       </div>
 
-      {creating ? (
-        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
-          <div className="grid gap-3 lg:grid-cols-[1.1fr_1.5fr_0.7fr_0.9fr_0.9fr_auto]">
-            <input value={createForm.title} onChange={(e) => setCreateForm((c) => ({ ...c, title: e.target.value }))} placeholder="Ticket title" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <input value={createForm.description} onChange={(e) => setCreateForm((c) => ({ ...c, description: e.target.value }))} placeholder="Description" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <select value={createForm.priority} onChange={(e) => setCreateForm((c) => ({ ...c, priority: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select>
-            <input value={createForm.assignee} onChange={(e) => setCreateForm((c) => ({ ...c, assignee: e.target.value }))} placeholder="Assignee" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <select value={createForm.sourceChannel} onChange={(e) => setCreateForm((c) => ({ ...c, sourceChannel: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><option value="EMAIL">Email</option><option value="PHONE">Phone</option><option value="WHATSAPP">WhatsApp</option></select>
+      <Modal isOpen={creating} onClose={() => setCreating(false)} title="Create Ticket" width="sm">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Ticket title</span>
+              <input value={createForm.title} onChange={(e) => setCreateForm((c) => ({ ...c, title: e.target.value }))} placeholder="e.g. Login issue" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Description</span>
+              <textarea value={createForm.description} onChange={(e) => setCreateForm((c) => ({ ...c, description: e.target.value }))} placeholder="Provide details..." className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white resize-none" rows={3}></textarea>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-700">Priority</span>
+                <select value={createForm.priority} onChange={(e) => setCreateForm((c) => ({ ...c, priority: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-700">Source Channel</span>
+                <select value={createForm.sourceChannel} onChange={(e) => setCreateForm((c) => ({ ...c, sourceChannel: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"><option value="EMAIL">Email</option><option value="PHONE">Phone</option><option value="WHATSAPP">WhatsApp</option></select>
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Assignee</span>
+              <input value={createForm.assignee} onChange={(e) => setCreateForm((c) => ({ ...c, assignee: e.target.value }))} placeholder="e.g. Support Team" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+          </div>
+          <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <button onClick={() => setCreating(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
             <button
               onClick={async () => {
                 setPending('status');
@@ -153,13 +176,13 @@ export function TicketList({ records = [], session, onRefresh }: TicketListProps
                 }
               }}
               disabled={pending !== null || !createForm.title}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400"
+              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {pending === 'status' ? 'Saving...' : 'Save'}
+              {pending === 'status' ? 'Saving...' : 'Save Ticket'}
             </button>
           </div>
         </div>
-      ) : null}
+      </Modal>
 
       <div className="bg-white px-4 py-3 border-b border-gray-200 flex flex-col gap-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between shrink-0">
         <div className="relative w-full lg:w-64">

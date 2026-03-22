@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.models.schemas import AiResponse, DraftRequest, SummarizeRequest
+from app.models.schemas import AiResponse, ChatRequest, DraftRequest, SummarizeRequest
 from app.services.orchestrator import AiOrchestrator
 
 router = APIRouter()
@@ -20,3 +20,8 @@ def summarize(request: SummarizeRequest) -> AiResponse:
 @router.post("/v1/draft", response_model=AiResponse)
 def draft(request: DraftRequest) -> AiResponse:
     return orchestrator.draft(request)
+
+
+@router.post("/v1/chat", response_model=AiResponse)
+def chat(request: ChatRequest) -> AiResponse:
+    return orchestrator.chat(request)

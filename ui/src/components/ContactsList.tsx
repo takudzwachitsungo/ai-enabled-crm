@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from './ui/Avatar';
 import { StatusBadge } from './ui/StatusBadge';
+import { Modal } from './ui/Modal';
 import { AuthSession, ContactRecord } from '../types/crm';
 import { createContact } from '../lib/api';
 
@@ -78,18 +79,32 @@ export function ContactsList({ records, session, onRefresh }: ContactsListProps)
         </button>
       </div>
 
-      {creating ? (
-        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
-          <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
-            <input value={form.fullName} onChange={(e) => setForm((c) => ({ ...c, fullName: e.target.value }))} placeholder="Full name" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <input value={form.email} onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))} placeholder="Email" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <input value={form.companyName} onChange={(e) => setForm((c) => ({ ...c, companyName: e.target.value }))} placeholder="Company name" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <button onClick={handleCreate} disabled={saving || !form.fullName || !form.email} className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400">
+      <Modal isOpen={creating} onClose={() => setCreating(false)} title="Create Contact" width="sm">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Full name</span>
+              <input value={form.fullName} onChange={(e) => setForm((c) => ({ ...c, fullName: e.target.value }))} placeholder="e.g. John Smith" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Email address</span>
+              <input value={form.email} onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))} placeholder="john@example.com" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Company name</span>
+              <input value={form.companyName} onChange={(e) => setForm((c) => ({ ...c, companyName: e.target.value }))} placeholder="e.g. Acme Corp" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+          </div>
+          <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <button onClick={() => setCreating(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button onClick={handleCreate} disabled={saving || !form.fullName || !form.email} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
               {saving ? 'Saving...' : 'Save Contact'}
             </button>
           </div>
         </div>
-      ) : null}
+      </Modal>
 
       {message ? <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 sm:px-6">{message}</div> : null}
 

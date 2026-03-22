@@ -1865,6 +1865,34 @@ class SecurityAndTenantWebLayerTest {
     }
 
     @Test
+    void adminCanCreateAiChat() throws Exception {
+        when(aiInteractionService.chat(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new AiInteractionDto(
+                        97L,
+                        "Workspace assistant",
+                        "CHAT",
+                        "WORKSPACE",
+                        null,
+                        "What should I focus on this week?",
+                        "Focus on the ZimEdu rollout, open retail ticket follow-up, and the top proposal-stage deals.",
+                        "AiOrchestrator:mock",
+                        Instant.parse("2026-03-22T09:00:00Z")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/ai/chat")
+                        .with(httpBasic("local-dev", "local-dev-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Workspace assistant","message":"What should I focus on this week?","conversation":[{"role":"user","content":"Give me a quick workspace summary."},{"role":"assistant","content":"Pipeline and tickets look healthy."}]}
+                                """.trim()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.operationType").value("CHAT"))
+                .andExpect(jsonPath("$.sourceType").value("WORKSPACE"));
+    }
+
+    @Test
     void adminCanCreateAiLeadScore() throws Exception {
         when(aiInteractionService.scoreLead(org.mockito.ArgumentMatchers.any())).thenReturn(
                 new AiInteractionDto(
@@ -2020,6 +2048,18 @@ class SecurityAndTenantWebLayerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Next best action","sourceType":"LEAD","sourceId":1,"objective":"Increase conversion","autoCreateActivity":true}
+                                """.trim()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerCannotCreateAiChat() throws Exception {
+        mockMvc.perform(post("/api/v1/ai/chat")
+                        .with(httpBasic("local-view", "local-view-pass"))
+                        .header(TenantFilter.TENANT_HEADER, "tenant-demo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Workspace assistant","message":"What should I focus on this week?"}
                                 """.trim()))
                 .andExpect(status().isForbidden());
     }

@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -51,6 +52,22 @@ public class AiGatewayClient {
                 "intent", intent,
                 "context", context,
                 "tone", tone
+        ));
+    }
+
+    public Optional<AiProviderResponse> chat(
+            String tenantId,
+            String tenantName,
+            String companyContext,
+            List<Map<String, String>> conversation,
+            String message
+    ) {
+        return post("/v1/chat", Map.of(
+                "tenant_id", tenantId,
+                "tenant_name", tenantName,
+                "company_context", companyContext,
+                "conversation", conversation,
+                "message", message
         ));
     }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ReceiptTextIcon, ChevronDownIcon, BadgeDollarSignIcon } from 'lucide-react';
 import { AuthSession, InvoiceRecord, QuoteRecord } from '../types/crm';
 import { StatusBadge } from './ui/StatusBadge';
+import { Modal } from './ui/Modal';
 import { convertQuoteToInvoice, createQuote, updateQuoteStatus } from '../lib/api';
 
 interface CommerceListProps {
@@ -107,19 +108,41 @@ export function CommerceList({ quotes = [], invoices = [], session, onRefresh }:
             <ChevronDownIcon className="w-4 h-4 text-gray-400" />
           </button>
         </div>
-        <button onClick={() => setCreating((value) => !value)} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-white">
-          {creating ? 'Close quote form' : 'New quote'}
+        <button onClick={() => setCreating(true)} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-white transition-colors">
+          New quote
         </button>
       </div>
 
-      {creating ? (
-        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
-          <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr_0.8fr_0.7fr_1fr_auto]">
-            <input value={createForm.accountId} onChange={(e) => setCreateForm((c) => ({ ...c, accountId: e.target.value }))} placeholder="Account ID" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <input value={createForm.name} onChange={(e) => setCreateForm((c) => ({ ...c, name: e.target.value }))} placeholder="Quote name" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <input value={createForm.amount} onChange={(e) => setCreateForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Amount" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <select value={createForm.status} onChange={(e) => setCreateForm((c) => ({ ...c, status: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><option value="DRAFT">Draft</option><option value="APPROVED">Approved</option></select>
-            <input value={createForm.validUntil} onChange={(e) => setCreateForm((c) => ({ ...c, validUntil: e.target.value }))} type="date" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
+      <Modal isOpen={creating} onClose={() => setCreating(false)} title="Create Quote" width="sm">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Account ID</span>
+              <input value={createForm.accountId} onChange={(e) => setCreateForm((c) => ({ ...c, accountId: e.target.value }))} type="number" placeholder="e.g. 1" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Quote Name</span>
+              <input value={createForm.name} onChange={(e) => setCreateForm((c) => ({ ...c, name: e.target.value }))} placeholder="e.g. Q4 Marketing Contract" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-700">Amount ($)</span>
+                <input value={createForm.amount} onChange={(e) => setCreateForm((c) => ({ ...c, amount: e.target.value }))} type="number" placeholder="5000" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-700">Status</span>
+                <select value={createForm.status} onChange={(e) => setCreateForm((c) => ({ ...c, status: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"><option value="DRAFT">Draft</option><option value="APPROVED">Approved</option></select>
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Valid Until</span>
+              <input value={createForm.validUntil} onChange={(e) => setCreateForm((c) => ({ ...c, validUntil: e.target.value }))} type="date" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+          </div>
+          <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <button onClick={() => setCreating(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
             <button
               onClick={async () => {
                 setPending('status');
@@ -143,13 +166,13 @@ export function CommerceList({ quotes = [], invoices = [], session, onRefresh }:
                 }
               }}
               disabled={pending !== null || !createForm.accountId || !createForm.name || !createForm.amount}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400"
+              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {pending === 'status' ? 'Saving...' : 'Save'}
+              {pending === 'status' ? 'Saving...' : 'Save Quote'}
             </button>
           </div>
         </div>
-      ) : null}
+      </Modal>
 
       <div className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
         <input

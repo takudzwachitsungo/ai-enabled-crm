@@ -240,6 +240,11 @@ export interface AiInteractionRecord {
   createdAt: string;
 }
 
+export interface AiChatConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface CustomEntityDefinitionRecord {
   id: number;
   name: string;

@@ -1,6 +1,7 @@
 package com.dala.crm.service;
 
 import com.dala.crm.dto.AiDraftRequest;
+import com.dala.crm.dto.AiChatRequest;
 import com.dala.crm.dto.AiAccountHealthRequest;
 import com.dala.crm.dto.AiChurnRiskRequest;
 import com.dala.crm.dto.AiInteractionDto;
@@ -23,6 +24,11 @@ public interface AiInteractionService {
      * Generates and records a tenant-scoped draft response.
      */
     AiInteractionDto draft(AiDraftRequest request);
+
+    /**
+     * Generates and records a tenant-scoped assistant chat response.
+     */
+    AiInteractionDto chat(AiChatRequest request);
 
     /**
      * Generates and records a tenant-scoped lead score insight.

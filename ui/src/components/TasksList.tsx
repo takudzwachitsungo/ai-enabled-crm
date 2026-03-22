@@ -10,6 +10,7 @@ import {
   MoreHorizontalIcon,
 } from 'lucide-react';
 import { StatusBadge } from './ui/StatusBadge';
+import { Modal } from './ui/Modal';
 import { ActivityRecord, AuthSession } from '../types/crm';
 import { createActivity } from '../lib/api';
 
@@ -108,29 +109,51 @@ export function TasksList({ records, session, onRefresh }: TasksListProps) {
         </button>
       </div>
 
-      {creating ? (
-        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
-          <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr_0.8fr_0.8fr_1.2fr_auto]">
-            <select value={form.type} onChange={(e) => setForm((c) => ({ ...c, type: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-              <option value="TASK">Task</option>
-              <option value="NOTE">Note</option>
-              <option value="MEETING">Meeting</option>
-            </select>
-            <input value={form.subject} onChange={(e) => setForm((c) => ({ ...c, subject: e.target.value }))} placeholder="Subject" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <select value={form.relatedEntityType} onChange={(e) => setForm((c) => ({ ...c, relatedEntityType: e.target.value }))} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-              <option value="LEAD">Lead</option>
-              <option value="TICKET">Ticket</option>
-              <option value="ACCOUNT">Account</option>
-              <option value="QUOTE">Quote</option>
-            </select>
-            <input value={form.relatedEntityId} onChange={(e) => setForm((c) => ({ ...c, relatedEntityId: e.target.value }))} placeholder="Related ID" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <input value={form.details} onChange={(e) => setForm((c) => ({ ...c, details: e.target.value }))} placeholder="Details" className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm" />
-            <button onClick={handleCreate} disabled={saving || !form.subject || !form.relatedEntityId} className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400">
-              {saving ? 'Saving...' : 'Save'}
+      <Modal isOpen={creating} onClose={() => setCreating(false)} title="Create Activity" width="sm">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Subject</span>
+              <input value={form.subject} onChange={(e) => setForm((c) => ({ ...c, subject: e.target.value }))} placeholder="e.g. Follow up email" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-700">Type</span>
+                <select value={form.type} onChange={(e) => setForm((c) => ({ ...c, type: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white">
+                  <option value="TASK">Task</option>
+                  <option value="NOTE">Note</option>
+                  <option value="MEETING">Meeting</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-700">Related to</span>
+                <select value={form.relatedEntityType} onChange={(e) => setForm((c) => ({ ...c, relatedEntityType: e.target.value }))} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white">
+                  <option value="LEAD">Lead</option>
+                  <option value="TICKET">Ticket</option>
+                  <option value="ACCOUNT">Account</option>
+                  <option value="QUOTE">Quote</option>
+                </select>
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Related ID</span>
+              <input value={form.relatedEntityId} onChange={(e) => setForm((c) => ({ ...c, relatedEntityId: e.target.value }))} placeholder="e.g. 1234" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Details</span>
+              <textarea value={form.details} onChange={(e) => setForm((c) => ({ ...c, details: e.target.value }))} placeholder="Activity details..." className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white resize-none" rows={3}></textarea>
+            </label>
+          </div>
+          <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <button onClick={() => setCreating(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button onClick={handleCreate} disabled={saving || !form.subject || !form.relatedEntityId} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+              {saving ? 'Saving...' : 'Save Activity'}
             </button>
           </div>
         </div>
-      ) : null}
+      </Modal>
 
       {message ? <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 sm:px-6">{message}</div> : null}
 

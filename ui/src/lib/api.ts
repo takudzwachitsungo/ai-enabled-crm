@@ -2,6 +2,7 @@ import {
   AccountRecord,
   ActivityRecord,
   AiInteractionRecord,
+  AiChatConversationMessage,
   AppUserRecord,
   AudienceSegmentRecord,
   AuthSessionResponse,
@@ -330,6 +331,17 @@ export function createAiRecommendation(
   },
 ) {
   return requestWithBody<AiInteractionRecord>(session, "/api/v1/ai/recommend", "POST", payload);
+}
+
+export function createAiChat(
+  session: AuthSession,
+  payload: {
+    name?: string;
+    message: string;
+    conversation?: AiChatConversationMessage[];
+  },
+) {
+  return requestWithBody<AiInteractionRecord>(session, "/api/v1/ai/chat", "POST", payload);
 }
 
 export function createLead(

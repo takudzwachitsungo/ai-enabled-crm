@@ -1,6 +1,7 @@
 package com.dala.crm.controller;
 
 import com.dala.crm.dto.AiDraftRequest;
+import com.dala.crm.dto.AiChatRequest;
 import com.dala.crm.dto.AiAccountHealthRequest;
 import com.dala.crm.dto.AiChurnRiskRequest;
 import com.dala.crm.dto.AiInteractionDto;
@@ -44,6 +45,13 @@ public class AiInteractionController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).AI_INTERACTIONS_WRITE)")
     public AiInteractionDto draft(@Valid @RequestBody AiDraftRequest request) {
         return aiInteractionService.draft(request);
+    }
+
+    @PostMapping("/chat")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).AI_INTERACTIONS_WRITE)")
+    public AiInteractionDto chat(@Valid @RequestBody AiChatRequest request) {
+        return aiInteractionService.chat(request);
     }
 
     @PostMapping("/lead-score")
