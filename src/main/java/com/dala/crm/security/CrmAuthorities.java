@@ -17,6 +17,8 @@ public final class CrmAuthorities {
     public static final String ACTIVITIES_WRITE = "crm:activities:write";
     public static final String WORKFLOWS_READ = "crm:workflows:read";
     public static final String WORKFLOWS_WRITE = "crm:workflows:write";
+    public static final String CUSTOM_ENTITIES_READ = "crm:custom-entities:read";
+    public static final String CUSTOM_ENTITIES_WRITE = "crm:custom-entities:write";
     public static final String DASHBOARD_READ = "crm:dashboard:read";
     public static final String TICKETS_READ = "crm:tickets:read";
     public static final String TICKETS_WRITE = "crm:tickets:write";
@@ -48,6 +50,10 @@ public final class CrmAuthorities {
     public static final String AI_INTERACTIONS_WRITE = "crm:ai:write";
     public static final String AUDIT_READ = "crm:audit:read";
     public static final String IDENTITY_READ = "crm:identity:read";
+    public static final String USERS_READ = "crm:users:read";
+    public static final String USERS_WRITE = "crm:users:write";
+    public static final String TENANT_PROFILE_READ = "crm:tenant-profile:read";
+    public static final String TENANT_PROFILE_WRITE = "crm:tenant-profile:write";
 
     private CrmAuthorities() {
     }

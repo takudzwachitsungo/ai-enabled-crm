@@ -1,13 +1,16 @@
 package com.dala.crm.controller;
 
+import com.dala.crm.dto.CommerceStatusUpdateRequest;
 import com.dala.crm.dto.InvoiceCreateRequest;
 import com.dala.crm.dto.InvoiceResponse;
+import com.dala.crm.dto.RenewalAutomationRunResponse;
 import com.dala.crm.service.InvoiceService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +36,18 @@ public class InvoiceController {
     @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INVOICES_WRITE)")
     public InvoiceResponse create(@Valid @RequestBody InvoiceCreateRequest request) {
         return invoiceService.create(request);
+    }
+
+    @PostMapping("/renewals/run")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INVOICES_WRITE)")
+    public RenewalAutomationRunResponse runRenewalAutomation() {
+        return invoiceService.runRenewalAutomation();
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority(T(com.dala.crm.security.CrmAuthorities).INVOICES_WRITE)")
+    public InvoiceResponse updateStatus(@PathVariable Long id, @Valid @RequestBody CommerceStatusUpdateRequest request) {
+        return invoiceService.updateStatus(id, request);
     }
 
     @GetMapping

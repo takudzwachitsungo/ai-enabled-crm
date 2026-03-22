@@ -5,6 +5,7 @@ import com.dala.crm.entity.AuditLog;
 import com.dala.crm.exception.BadRequestException;
 import com.dala.crm.repo.AuditLogRepository;
 import com.dala.crm.security.TenantContext;
+import com.dala.crm.security.TenantUserPrincipal;
 import com.dala.crm.service.AuditLogService;
 import java.time.Instant;
 import java.util.List;
@@ -56,6 +57,9 @@ public class AuditLogServiceImpl implements AuditLogService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             return "system";
+        }
+        if (authentication.getPrincipal() instanceof TenantUserPrincipal principal && principal.getFullName() != null) {
+            return principal.getFullName();
         }
         return authentication.getName();
     }

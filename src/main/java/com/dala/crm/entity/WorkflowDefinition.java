@@ -31,6 +31,15 @@ public class WorkflowDefinition {
     @Column(length = 160)
     private String triggerFilter;
 
+    @Column(length = 60)
+    private String targetEntityType;
+
+    @Column(length = 100)
+    private String targetEntityApiName;
+
+    @Column(length = 4000)
+    private String conditionsJson;
+
     @Column(nullable = false, length = 60)
     private String actionType;
 
@@ -39,6 +48,9 @@ public class WorkflowDefinition {
 
     @Column(length = 4000)
     private String actionDetails;
+
+    @Column(length = 4000)
+    private String actionConfigJson;
 
     @Column(nullable = false)
     private boolean active;
@@ -86,6 +98,30 @@ public class WorkflowDefinition {
         this.triggerFilter = triggerFilter;
     }
 
+    public String getTargetEntityType() {
+        return targetEntityType;
+    }
+
+    public void setTargetEntityType(String targetEntityType) {
+        this.targetEntityType = targetEntityType;
+    }
+
+    public String getTargetEntityApiName() {
+        return targetEntityApiName;
+    }
+
+    public void setTargetEntityApiName(String targetEntityApiName) {
+        this.targetEntityApiName = targetEntityApiName;
+    }
+
+    public String getConditionsJson() {
+        return conditionsJson;
+    }
+
+    public void setConditionsJson(String conditionsJson) {
+        this.conditionsJson = conditionsJson;
+    }
+
     public String getActionType() {
         return actionType;
     }
@@ -108,6 +144,14 @@ public class WorkflowDefinition {
 
     public void setActionDetails(String actionDetails) {
         this.actionDetails = actionDetails;
+    }
+
+    public String getActionConfigJson() {
+        return actionConfigJson;
+    }
+
+    public void setActionConfigJson(String actionConfigJson) {
+        this.actionConfigJson = actionConfigJson;
     }
 
     public boolean isActive() {

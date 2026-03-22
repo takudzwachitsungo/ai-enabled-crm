@@ -23,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class TenantFilter extends OncePerRequestFilter {
 
     public static final String TENANT_HEADER = "X-Tenant-Id";
+    public static final String RESOLVED_TENANT_REQUEST_ATTRIBUTE = TenantFilter.class.getName() + ".resolvedTenantId";
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -39,9 +40,25 @@ public class TenantFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String tenantId = request.getHeader(TENANT_HEADER);
+        String resolvedTenantId = (String) request.getAttribute(RESOLVED_TENANT_REQUEST_ATTRIBUTE);
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if ((authorization != null && !authorization.isBlank()) && (tenantId == null || tenantId.isBlank())) {
+        if (tenantId != null && !tenantId.isBlank() && resolvedTenantId != null && !resolvedTenantId.isBlank()
+                && !tenantId.trim().equalsIgnoreCase(resolvedTenantId.trim())) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("""
+                    {"status":401,"error":"Unauthorized","message":"Tenant header does not match the authenticated session.","path":"%s"}
+                    """.formatted(request.getRequestURI()).replace(System.lineSeparator(), "").trim());
+            return;
+        }
+
+        String effectiveTenantId = tenantId;
+        if ((effectiveTenantId == null || effectiveTenantId.isBlank()) && resolvedTenantId != null && !resolvedTenantId.isBlank()) {
+            effectiveTenantId = resolvedTenantId;
+        }
+
+        if ((authorization != null && !authorization.isBlank()) && (effectiveTenantId == null || effectiveTenantId.isBlank())) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write("""
@@ -50,8 +67,8 @@ public class TenantFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (tenantId != null && !tenantId.isBlank()) {
-            TenantContext.setTenantId(tenantId.trim());
+        if (effectiveTenantId != null && !effectiveTenantId.isBlank()) {
+            TenantContext.setTenantId(effectiveTenantId.trim());
         }
 
         try {

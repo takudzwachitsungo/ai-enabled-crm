@@ -1,0 +1,175 @@
+import React, { useState } from 'react';
+import {
+  BuildingIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  FilterIcon,
+  ArrowUpDownIcon,
+  ColumnsIcon,
+  MoreHorizontalIcon,
+  ExternalLinkIcon,
+} from 'lucide-react';
+import { Avatar } from './ui/Avatar';
+import { Modal } from './ui/Modal';
+import { AccountRecord, AuthSession } from '../types/crm';
+import { createAccount } from '../lib/api';
+
+interface OrganizationsListProps {
+  records?: AccountRecord[];
+  session: AuthSession;
+  onRefresh: () => Promise<void>;
+}
+
+export function OrganizationsList({ records, session, onRefresh }: OrganizationsListProps) {
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({ name: '', industry: '', website: '' });
+  const [query, setQuery] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const accountRows = (records ?? []).map((account) => ({
+    id: String(account.id),
+    name: account.name,
+    website: account.website || '-',
+    industry: account.industry || '-',
+    territory: 'Tenant scoped',
+    annualRevenue: 'Tracked in commerce',
+    lastModified: new Date(account.createdAt).toLocaleDateString(),
+  }));
+  const filteredAccounts = accountRows.filter((account) =>
+    [account.name, account.website, account.industry]
+      .join(' ')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+
+  async function handleCreate() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await createAccount(session, form);
+      setForm({ name: '', industry: '', website: '' });
+      setCreating(false);
+      setMessage('Account created successfully.');
+      await onRefresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to create account.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-[#f8f9fa] overflow-hidden">
+      <div className="bg-white px-4 py-4 border-b border-gray-200 flex flex-col gap-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between shrink-0">
+        <div className="flex items-center gap-2 text-lg">
+          <span className="text-gray-500">Accounts /</span>
+          <button className="flex items-center gap-2 font-semibold text-gray-900 hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
+            <BuildingIcon className="w-5 h-5 text-gray-400" />
+            List
+            <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+        <button onClick={() => setCreating((v) => !v)} className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-gray-800 transition-colors">
+          <PlusIcon className="w-4 h-4" />
+          Create
+        </button>
+      </div>
+
+      <Modal isOpen={creating} onClose={() => setCreating(false)} title="Create Account" width="sm">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Account name</span>
+              <input value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} placeholder="e.g. Acme Corp" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Industry</span>
+              <input value={form.industry} onChange={(e) => setForm((c) => ({ ...c, industry: e.target.value }))} placeholder="e.g. Software" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-700">Website</span>
+              <input value={form.website} onChange={(e) => setForm((c) => ({ ...c, website: e.target.value }))} placeholder="e.g. https://acme.com" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white" />
+            </label>
+          </div>
+          <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <button onClick={() => setCreating(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button onClick={handleCreate} disabled={saving || !form.name} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+              {saving ? 'Saving...' : 'Save Account'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {message ? <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 sm:px-6">{message}</div> : null}
+
+      <div className="bg-white px-4 py-3 border-b border-gray-200 flex flex-col gap-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between shrink-0">
+        <div className="relative w-full lg:w-64">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} type="text" placeholder="Search accounts" className="w-full pl-3 pr-10 py-1.5 bg-gray-100 border-transparent rounded-md text-sm focus:bg-white focus:border-gray-300 focus:ring-0 transition-colors" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"><RefreshCwIcon className="w-4 h-4" /></button>
+          <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"><FilterIcon className="w-4 h-4" /> Filter</button>
+          <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"><ArrowUpDownIcon className="w-4 h-4" /> Sort</button>
+          <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"><ColumnsIcon className="w-4 h-4" /> Columns</button>
+          <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"><MoreHorizontalIcon className="w-4 h-4" /></button>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto bg-white">
+        <table className="w-full text-sm text-left whitespace-nowrap">
+          <thead className="text-xs text-gray-500 bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
+            <tr>
+              <th className="px-6 py-3 font-medium w-12"><input type="checkbox" className="rounded border-gray-300 text-black focus:ring-black" /></th>
+              <th className="px-6 py-3 font-medium">Name</th>
+              <th className="px-6 py-3 font-medium">Website</th>
+              <th className="px-6 py-3 font-medium">Industry</th>
+              <th className="px-6 py-3 font-medium">Territory</th>
+              <th className="px-6 py-3 font-medium">Annual Revenue</th>
+              <th className="px-6 py-3 font-medium">Last Modified</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredAccounts.map((org) => (
+              <tr key={org.id} className="hover:bg-gray-50 cursor-pointer transition-colors group">
+                <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="rounded border-gray-300 text-black focus:ring-black" /></td>
+                <td className="px-6 py-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar fallback={org.name} size="md" className="bg-gray-100 text-gray-500" />
+                    <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{org.name}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-3">
+                  <a href={org.website === '-' ? '#' : org.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    {org.website === '-' ? '-' : org.website.replace('https://', '')}
+                    <ExternalLinkIcon className="w-3 h-3" />
+                  </a>
+                </td>
+                <td className="px-6 py-3 text-gray-600">{org.industry}</td>
+                <td className="px-6 py-3 text-gray-600">{org.territory}</td>
+                <td className="px-6 py-3 text-gray-900 font-medium">{org.annualRevenue}</td>
+                <td className="px-6 py-3 text-gray-500">{org.lastModified}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!filteredAccounts.length ? <div className="px-6 py-12 text-center text-sm text-gray-500">No accounts match the current search yet.</div> : null}
+      </div>
+
+      <div className="bg-white px-4 py-3 border-t border-gray-200 flex flex-col gap-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between shrink-0 text-sm">
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-md">
+          <button className="px-3 py-1 bg-white shadow-sm rounded text-gray-900 font-medium">20</button>
+          <button className="px-3 py-1 text-gray-600 hover:text-gray-900">50</button>
+          <button className="px-3 py-1 text-gray-600 hover:text-gray-900">100</button>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium">Load More</button>
+          <span className="text-gray-500">{filteredAccounts.length} loaded</span>
+        </div>
+      </div>
+    </div>
+  );
+}
